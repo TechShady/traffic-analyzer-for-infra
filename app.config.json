@@ -8,7 +8,10 @@
     "id": "my.traffic.analyzer.for.infra",
     "scopes": [
       { "name": "storage:logs:read", "comment": "default template" },
-      { "name": "storage:buckets:read", "comment": "default template" }
+      { "name": "storage:buckets:read", "comment": "default template" },
+      { "name": "storage:metrics:read", "comment": "read host metrics" },
+      { "name": "storage:entities:read", "comment": "read host entities" },
+      { "name": "environment-api:metrics:read", "comment": "read metrics v2" }
     ]
   }
 }
