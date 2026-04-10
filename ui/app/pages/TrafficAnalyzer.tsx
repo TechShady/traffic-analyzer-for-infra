@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from "react";
-import { Flex, Surface } from "@dynatrace/strato-components/layouts";
+import "./TrafficAnalyzer.css";
+import { Flex } from "@dynatrace/strato-components/layouts";
 import { Heading, Strong } from "@dynatrace/strato-components/typography";
 import { SingleValue } from "@dynatrace/strato-components/charts";
 import { CategoricalBarChart } from "@dynatrace/strato-components-preview/charts";
@@ -85,25 +86,27 @@ function num(v: unknown): number {
 
 function SectionHeader({ title }: { title: string }) {
   return (
-    <Surface style={{ padding: "8px 16px", background: "var(--dt-colors-charts-categorical-color-01-default, #134fc9)", borderRadius: 4 }}>
-      <Heading level={5} style={{ color: "#fff", margin: 0 }}>{title}</Heading>
-    </Surface>
+    <div style={{ padding: "10px 20px", background: "linear-gradient(135deg, #0d3fb8 0%, #134fc9 50%, #1a6bef 100%)", borderRadius: 8, boxShadow: "0 2px 12px rgba(19, 79, 201, 0.35)" }}>
+      <Heading level={5} style={{ color: "#fff", margin: 0, letterSpacing: 0.5 }}>{title}</Heading>
+    </div>
   );
 }
 
 function SubHeader({ title }: { title: string }) {
   return (
-    <Surface style={{ padding: "4px 12px", background: "var(--dt-colors-charts-categorical-color-01-default, #134fc9)", borderRadius: 4 }}>
-      <Strong style={{ color: "#fff" }}>{title}</Strong>
-    </Surface>
+    <div style={{ padding: "6px 14px", background: "linear-gradient(135deg, #0d3fb8 0%, #134fc9 100%)", borderRadius: 6, boxShadow: "0 1px 8px rgba(19, 79, 201, 0.25)" }}>
+      <Strong style={{ color: "#fff", letterSpacing: 0.3 }}>{title}</Strong>
+    </div>
   );
 }
 
-const TILE_BORDER = "1px solid var(--dt-colors-border-neutral-default, #3a3f4b)";
+const TILE_BORDER = "1px solid rgba(99, 130, 191, 0.25)";
+const TILE_SHADOW = "0 2px 8px rgba(0, 0, 0, 0.2), 0 0 1px rgba(99, 130, 191, 0.2)";
+const TILE_BG = "linear-gradient(145deg, rgba(30, 35, 55, 0.6) 0%, rgba(22, 26, 42, 0.8) 100%)";
 
 function MetricCard({ label, value, unit, color, bordered, style: extraStyle }: { label: string; value: number; unit?: string; color: string; bordered?: boolean; style?: React.CSSProperties }) {
   return (
-    <div style={{ flex: "1 1 180px", minWidth: 160, maxWidth: 280, width: 200, height: 80, textAlign: "center", ...(bordered ? { border: TILE_BORDER, borderRadius: 8, padding: 4 } : {}), ...extraStyle }}>
+    <div style={{ flex: "1 1 180px", minWidth: 160, maxWidth: 280, width: 200, height: 80, textAlign: "center", ...(bordered ? { border: TILE_BORDER, borderRadius: 10, padding: 4, background: TILE_BG, boxShadow: TILE_SHADOW, transition: "box-shadow 0.2s ease, transform 0.2s ease" } : {}), ...extraStyle }}>
       <SingleValue data={round(value)} label={label} unit={unit} color={color} />
     </div>
   );
@@ -112,8 +115,14 @@ function MetricCard({ label, value, unit, color, bordered, style: extraStyle }: 
 function ArrowRight() {
   return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minWidth: 120, flex: "0 0 120px" }}>
-      <svg width="120" height="80" viewBox="0 0 120 80" fill="none">
-        <path d="M5 40h90M80 10l30 30-30 30" stroke="#134FC9" strokeWidth="10" strokeLinecap="round" strokeLinejoin="round" />
+      <svg width="120" height="80" viewBox="0 0 120 80" fill="none" style={{ filter: "drop-shadow(0 0 6px rgba(19, 79, 201, 0.5))" }}>
+        <defs>
+          <linearGradient id="arrowGrad" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stopColor="#4589FF" />
+            <stop offset="100%" stopColor="#134FC9" />
+          </linearGradient>
+        </defs>
+        <path d="M5 40h90M80 10l30 30-30 30" stroke="url(#arrowGrad)" strokeWidth="10" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     </div>
   );
@@ -358,16 +367,16 @@ export const TrafficAnalyzer = () => {
   return (
     <Flex flexDirection="column" gap={0}>
       {/* Filters - sticky at top */}
-      <div style={{ position: "sticky", top: 0, zIndex: 10, background: "var(--dt-colors-background-surface-default, #1a1a2e)", padding: "8px 16px 8px 16px" }}>
+      <div style={{ position: "sticky", top: 0, zIndex: 10, background: "linear-gradient(180deg, rgba(20, 22, 38, 0.97) 0%, rgba(26, 26, 46, 0.95) 100%)", backdropFilter: "blur(12px)", padding: "12px 20px 10px 20px", borderBottom: "1px solid rgba(99, 130, 191, 0.15)", boxShadow: "0 4px 20px rgba(0, 0, 0, 0.3)" }}>
         <Flex flexDirection="column" gap={4} style={{ width: "100%" }}>
-          <Strong style={{ textAlign: "center" }}>Traffic Percentage: {trafficChangePercent}</Strong>
+          <Strong style={{ textAlign: "center", letterSpacing: 0.5 }}>Traffic Percentage: {trafficChangePercent}</Strong>
         <input
           type="range"
           min={0}
           max={TRAFFIC_CHANGE_OPTIONS.length - 1}
           value={TRAFFIC_CHANGE_OPTIONS.indexOf(trafficChangePercent)}
           onChange={(e) => setTrafficChangePercent(TRAFFIC_CHANGE_OPTIONS[Number(e.target.value)])}
-          style={{ width: "100%", accentColor: "#134FC9", cursor: "pointer" }}
+          style={{ width: "100%", cursor: "pointer" }}
         />
         <div style={{ position: "relative", width: "100%", height: 16 }}>
           {TRAFFIC_CHANGE_OPTIONS.map((v, i) => (
@@ -642,7 +651,7 @@ export const TrafficAnalyzer = () => {
                   <MetricCard label="PCC" value={cpuPCC} color={getPccColor(cpuPCC)} bordered style={{ flex: 1, maxWidth: "none", width: "auto" }} />
                 </Flex>
                 <Flex gap={8} alignItems="stretch">
-                  <div style={{ flex: 1, border: TILE_BORDER, borderRadius: 8, padding: 8 }}>
+                  <div style={{ flex: 1, border: TILE_BORDER, borderRadius: 10, padding: 8, background: TILE_BG, boxShadow: TILE_SHADOW }}>
                     <GaugeChart value={round(cpuForecast.high)} max={100} unit="percent" height={180}>
                       <GaugeChart.Label>CPU</GaugeChart.Label>
                       <GaugeChart.ColorRule comparator="greater-or-equal" matchValue={0} color="#00D26A" />
@@ -652,7 +661,7 @@ export const TrafficAnalyzer = () => {
                       <GaugeChart.ThresholdIndicator value={90} showIndicator color="#F8312F" />
                     </GaugeChart>
                   </div>
-                  <div style={{ flex: 1, border: TILE_BORDER, borderRadius: 8, padding: 8, display: "flex", alignItems: "center", textAlign: "center" }}>
+                  <div style={{ flex: 1, border: TILE_BORDER, borderRadius: 10, padding: 8, display: "flex", alignItems: "center", textAlign: "center", background: TILE_BG, boxShadow: TILE_SHADOW }}>
                     <div style={{ width: "100%", height: 80 }}>
                       <SingleValue data={round(cpuProvisioning)} label="CPU Provisioning" unit="%" color={getProvisioningColor(cpuProvisioning)} />
                     </div>
@@ -666,7 +675,7 @@ export const TrafficAnalyzer = () => {
                   <MetricCard label="PCC" value={memPCC} color={getPccColor(memPCC)} bordered style={{ flex: 1, maxWidth: "none", width: "auto" }} />
                 </Flex>
                 <Flex gap={8} alignItems="stretch">
-                  <div style={{ flex: 1, border: TILE_BORDER, borderRadius: 8, padding: 8 }}>
+                  <div style={{ flex: 1, border: TILE_BORDER, borderRadius: 10, padding: 8, background: TILE_BG, boxShadow: TILE_SHADOW }}>
                     <GaugeChart value={round(memForecast.high * memPCC)} max={100} unit="percent" height={180}>
                       <GaugeChart.Label>Memory</GaugeChart.Label>
                       <GaugeChart.ColorRule comparator="greater-or-equal" matchValue={0} color="#00D26A" />
@@ -676,7 +685,7 @@ export const TrafficAnalyzer = () => {
                       <GaugeChart.ThresholdIndicator value={90} showIndicator color="#F8312F" />
                     </GaugeChart>
                   </div>
-                  <div style={{ flex: 1, border: TILE_BORDER, borderRadius: 8, padding: 8, display: "flex", alignItems: "center", textAlign: "center" }}>
+                  <div style={{ flex: 1, border: TILE_BORDER, borderRadius: 10, padding: 8, display: "flex", alignItems: "center", textAlign: "center", background: TILE_BG, boxShadow: TILE_SHADOW }}>
                     <div style={{ width: "100%", height: 80 }}>
                       <SingleValue data={round(memProvisioning)} label="Memory Provisioning" unit="%" color={getProvisioningColor(memProvisioning)} />
                     </div>
@@ -690,7 +699,7 @@ export const TrafficAnalyzer = () => {
                   <MetricCard label="PCC" value={diskPCC} color={getPccColor(diskPCC)} bordered style={{ flex: 1, maxWidth: "none", width: "auto" }} />
                 </Flex>
                 <Flex gap={8} alignItems="stretch">
-                  <div style={{ flex: 1, border: TILE_BORDER, borderRadius: 8, padding: 8 }}>
+                  <div style={{ flex: 1, border: TILE_BORDER, borderRadius: 10, padding: 8, background: TILE_BG, boxShadow: TILE_SHADOW }}>
                     <GaugeChart value={round(diskForecast.high * diskPCC)} max={100} unit="percent" height={180}>
                       <GaugeChart.Label>Disk Free</GaugeChart.Label>
                       <GaugeChart.ColorRule comparator="greater-or-equal" matchValue={0} color="#00D26A" />
@@ -700,7 +709,7 @@ export const TrafficAnalyzer = () => {
                       <GaugeChart.ThresholdIndicator value={90} showIndicator color="#F8312F" />
                     </GaugeChart>
                   </div>
-                  <div style={{ flex: 1, border: TILE_BORDER, borderRadius: 8, padding: 8, display: "flex", alignItems: "center", textAlign: "center" }}>
+                  <div style={{ flex: 1, border: TILE_BORDER, borderRadius: 10, padding: 8, display: "flex", alignItems: "center", textAlign: "center", background: TILE_BG, boxShadow: TILE_SHADOW }}>
                     <div style={{ width: "100%", height: 80 }}>
                       <SingleValue data={round(diskProvisioning)} label="Disk Provisioning" unit="%" color={getProvisioningColor(diskProvisioning)} />
                     </div>
