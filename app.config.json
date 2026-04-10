@@ -1,9 +1,9 @@
 {
   "$schema": "./.dt-app/app.config.schema.json",
-  "environmentUrl": "https://caresource.apps.dynatrace.com/",
+  "environmentUrl": "https://guu84124.apps.dynatrace.com/",
   "app": {
     "name": "Traffic Analyzer for Infrastructure",
-    "version": "0.16.0",
+    "version": "0.16.1",
     "description": "Infrastructure traffic analysis with forecasting and Pearson Correlation",
     "id": "my.traffic.analyzer.infra.app",
     "scopes": [
