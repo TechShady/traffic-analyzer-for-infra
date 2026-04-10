@@ -35,7 +35,7 @@ const TRAFFIC_CHANGE_OPTIONS = [
   450, 500, 600, 700, 800, 900, 1000, 2000, 3000, 4000, 5000,
 ];
 
-const PROVISION_GOAL = 80;
+const DEFAULT_PROVISION_GOAL = 80;
 const DEFAULT_TOP_N = 100;
 
 const TIMEFRAME_OPTIONS = [
@@ -155,9 +155,11 @@ export const TrafficAnalyzer = () => {
   const [trafficChangePercent, setTrafficChangePercent] = useState<number>(0);
   const [topN, setTopN] = useState<number>(DEFAULT_TOP_N);
   const [timeframeDays, setTimeframeDays] = useState<number>(7);
+  const [provisionGoal, setProvisionGoal] = useState<number>(DEFAULT_PROVISION_GOAL);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [tempTopN, setTempTopN] = useState<number>(DEFAULT_TOP_N);
+  const [tempProvisionGoal, setTempProvisionGoal] = useState<number>(DEFAULT_PROVISION_GOAL);
 
   // Fetch host group list
   const hostGroupList = useDql({ query: hostGroupListQuery() });
@@ -248,9 +250,9 @@ export const TrafficAnalyzer = () => {
   const diskForecast = useMemo(() => forecast(disk, trafficChangePercent, traffic.change, diskPCC), [disk, trafficChangePercent, traffic.change, diskPCC]);
 
   // Provisioning (PCC-weighted)
-  const cpuProvisioning = PROVISION_GOAL - cpuForecast.high * cpuPCC;
-  const memProvisioning = PROVISION_GOAL - memForecast.high * memPCC;
-  const diskProvisioning = PROVISION_GOAL - diskForecast.high * diskPCC;
+  const cpuProvisioning = provisionGoal - cpuForecast.high * cpuPCC;
+  const memProvisioning = provisionGoal - memForecast.high * memPCC;
+  const diskProvisioning = provisionGoal - diskForecast.high * diskPCC;
 
   // Bar chart data
   const cpuBarData = useMemo(() => [
@@ -287,9 +289,9 @@ export const TrafficAnalyzer = () => {
       const pcc = num(r["Pearson Correlation Coefficient"]);
       const obs = { low: num(r["Observed CPU Low"]), avg: num(r["Observed CPU Avg"]), high: num(r["Observed CPU High"]), change: num(r["cpuUsage.PercentChange"]) };
       const fc = forecastForHost(obs, trafficChangePercent, traffic.change, pcc);
-      return { "Host Name": r["Host Name"] as string, "PCC": round(pcc), "Observed CPU Low": round(obs.low), "Observed CPU Avg": round(obs.avg), "Observed CPU High": round(obs.high), "Forecasted Low CPU": round(fc.low), "Forecasted Avg CPU": round(fc.avg), "Forecasted High CPU": round(fc.high), Provisioning: round(PROVISION_GOAL - fc.high) };
+      return { "Host Name": r["Host Name"] as string, "PCC": round(pcc), "Observed CPU Low": round(obs.low), "Observed CPU Avg": round(obs.avg), "Observed CPU High": round(obs.high), "Forecasted Low CPU": round(fc.low), "Forecasted Avg CPU": round(fc.avg), "Forecasted High CPU": round(fc.high), Provisioning: round(provisionGoal - fc.high) };
     });
-  }, [cpuByHost.data, trafficChangePercent, traffic.change, metrics]);
+  }, [cpuByHost.data, trafficChangePercent, traffic.change, metrics, provisionGoal]);
 
   const memTableData = useMemo(() => {
     if (!memByHost.data?.records || !metrics) return [];
@@ -297,9 +299,9 @@ export const TrafficAnalyzer = () => {
       const pcc = num(r["Pearson Correlation Coefficient"]);
       const obs = { low: num(r["Observed MEM Low"]), avg: num(r["Observed MEM Avg"]), high: num(r["Observed MEM High"]), change: num(r["memUsage.PercentChange"]) };
       const fc = forecastForHost(obs, trafficChangePercent, traffic.change, pcc);
-      return { "Host Name": r["Host Name"] as string, "PCC": round(pcc), "Observed MEM Low": round(obs.low), "Observed MEM Avg": round(obs.avg), "Observed MEM High": round(obs.high), "Forecasted Low MEM": round(fc.low), "Forecasted Avg MEM": round(fc.avg), "Forecasted High MEM": round(fc.high), Provisioning: round(PROVISION_GOAL - fc.high) };
+      return { "Host Name": r["Host Name"] as string, "PCC": round(pcc), "Observed MEM Low": round(obs.low), "Observed MEM Avg": round(obs.avg), "Observed MEM High": round(obs.high), "Forecasted Low MEM": round(fc.low), "Forecasted Avg MEM": round(fc.avg), "Forecasted High MEM": round(fc.high), Provisioning: round(provisionGoal - fc.high) };
     });
-  }, [memByHost.data, trafficChangePercent, traffic.change, metrics]);
+  }, [memByHost.data, trafficChangePercent, traffic.change, metrics, provisionGoal]);
 
   const diskTableData = useMemo(() => {
     if (!diskByHost.data?.records || !metrics) return [];
@@ -307,12 +309,13 @@ export const TrafficAnalyzer = () => {
       const pcc = num(r["Pearson Correlation Coefficient"]);
       const obs = { low: num(r["Observed Disk Free Low"]), avg: num(r["Observed Disk Free Avg"]), high: num(r["Observed Disk Free High"]), change: num(r["diskFree.PercentChange"]) };
       const fc = forecastForHost(obs, trafficChangePercent, traffic.change, pcc);
-      return { "Host Name": r["Host Name"] as string, "PCC": round(pcc), "Observed Disk Free Low": round(obs.low), "Observed Disk Free Avg": round(obs.avg), "Observed Disk Free High": round(obs.high), "Forecasted Low Disk Free": round(fc.low), "Forecasted Avg Disk Free": round(fc.avg), "Forecasted High Disk Free": round(fc.high), Provisioning: round(PROVISION_GOAL - fc.high) };
+      return { "Host Name": r["Host Name"] as string, "PCC": round(pcc), "Observed Disk Free Low": round(obs.low), "Observed Disk Free Avg": round(obs.avg), "Observed Disk Free High": round(obs.high), "Forecasted Low Disk Free": round(fc.low), "Forecasted Avg Disk Free": round(fc.avg), "Forecasted High Disk Free": round(fc.high), Provisioning: round(provisionGoal - fc.high) };
     });
-  }, [diskByHost.data, trafficChangePercent, traffic.change, metrics]);
+  }, [diskByHost.data, trafficChangePercent, traffic.change, metrics, provisionGoal]);
 
   const handleSaveSettings = () => {
     setTopN(tempTopN);
+    setProvisionGoal(tempProvisionGoal);
     setSettingsOpen(false);
   };
 
@@ -424,7 +427,7 @@ export const TrafficAnalyzer = () => {
           <Button variant="default" onClick={() => setHelpOpen(true)}>
             <Button.Prefix><HelpIcon /></Button.Prefix>
           </Button>
-          <Button variant="default" onClick={() => { setTempTopN(topN); setSettingsOpen(true); }}>
+          <Button variant="default" onClick={() => { setTempTopN(topN); setTempProvisionGoal(provisionGoal); setSettingsOpen(true); }}>
             <Button.Prefix><SettingIcon /></Button.Prefix>
           </Button>
         </div>
@@ -447,7 +450,7 @@ export const TrafficAnalyzer = () => {
             <li><strong>Host Group</strong> — Filter hosts by host group. Selecting a group restricts the Host dropdown to hosts in that group.</li>
             <li><strong>Host</strong> — Select specific hosts to analyze. If none selected, all hosts (or hosts in the selected group) are included.</li>
             <li><strong>Timeframe</strong> — Analysis window (1–365 days). All metrics and tables use this time range.</li>
-            <li><strong>Settings (⚙)</strong> — Configure Top N (max entities per table).</li>
+            <li><strong>Settings (⚙)</strong> — Configure Provisioning Goal (default {DEFAULT_PROVISION_GOAL}%) and Top N (max entities per table).</li>
           </ul>
 
           <h3>Key Concepts</h3>
@@ -488,9 +491,9 @@ export const TrafficAnalyzer = () => {
           </p>
 
           <h4>Provisioning</h4>
-          <p>How much headroom remains before the resource hits the {PROVISION_GOAL}% capacity goal:</p>
+          <p>How much headroom remains before the resource hits the {provisionGoal}% capacity goal (configurable in Settings):</p>
           <p style={{ fontFamily: "monospace", background: "var(--dt-colors-background-surface-default)", padding: 8, borderRadius: 4 }}>
-            Provisioning = {PROVISION_GOAL}% − (Forecast High × PCC)
+            Provisioning = {provisionGoal}% − (Forecast High × PCC)
           </p>
           <ul>
             <li><span style={{ color: "#00D26A" }}>■</span> Provisioning ≥ 0 — Capacity available (green)</li>
@@ -614,6 +617,10 @@ export const TrafficAnalyzer = () => {
       >
         <Flex flexDirection="column" gap={16} padding={16}>
           <Flex flexDirection="column" gap={4}>
+            <Strong>Provisioning Goal (%)</Strong>
+            <NumberInput value={tempProvisionGoal} onChange={(val) => setTempProvisionGoal(val ?? DEFAULT_PROVISION_GOAL)} min={1} max={100} />
+          </Flex>
+          <Flex flexDirection="column" gap={4}>
             <Strong>Top N (entities per table)</Strong>
             <NumberInput value={tempTopN} onChange={(val) => setTempTopN(val ?? DEFAULT_TOP_N)} min={1} max={10000} />
           </Flex>
@@ -641,6 +648,8 @@ export const TrafficAnalyzer = () => {
                       <GaugeChart.ColorRule comparator="greater-or-equal" matchValue={0} color="#2a7453" />
                       <GaugeChart.ColorRule comparator="greater-or-equal" matchValue={80} color="#a9780f" />
                       <GaugeChart.ColorRule comparator="greater-or-equal" matchValue={90} color="#ae132d" />
+                      <GaugeChart.ThresholdIndicator value={80} showIndicator color="#a9780f" />
+                      <GaugeChart.ThresholdIndicator value={90} showIndicator color="#ae132d" />
                     </GaugeChart>
                   </div>
                   <div style={{ flex: 1, border: TILE_BORDER, borderRadius: 8, padding: 8, display: "flex", alignItems: "center", textAlign: "center" }}>
@@ -663,6 +672,8 @@ export const TrafficAnalyzer = () => {
                       <GaugeChart.ColorRule comparator="greater-or-equal" matchValue={0} color="#2a7453" />
                       <GaugeChart.ColorRule comparator="greater-or-equal" matchValue={80} color="#a9780f" />
                       <GaugeChart.ColorRule comparator="greater-or-equal" matchValue={90} color="#ae132d" />
+                      <GaugeChart.ThresholdIndicator value={80} showIndicator color="#a9780f" />
+                      <GaugeChart.ThresholdIndicator value={90} showIndicator color="#ae132d" />
                     </GaugeChart>
                   </div>
                   <div style={{ flex: 1, border: TILE_BORDER, borderRadius: 8, padding: 8, display: "flex", alignItems: "center", textAlign: "center" }}>
@@ -685,6 +696,8 @@ export const TrafficAnalyzer = () => {
                       <GaugeChart.ColorRule comparator="greater-or-equal" matchValue={0} color="#2a7453" />
                       <GaugeChart.ColorRule comparator="greater-or-equal" matchValue={80} color="#a9780f" />
                       <GaugeChart.ColorRule comparator="greater-or-equal" matchValue={90} color="#ae132d" />
+                      <GaugeChart.ThresholdIndicator value={80} showIndicator color="#a9780f" />
+                      <GaugeChart.ThresholdIndicator value={90} showIndicator color="#ae132d" />
                     </GaugeChart>
                   </div>
                   <div style={{ flex: 1, border: TILE_BORDER, borderRadius: 8, padding: 8, display: "flex", alignItems: "center", textAlign: "center" }}>
