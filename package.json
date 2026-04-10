@@ -1,5 +1,5 @@
 {
-  "name": "traffic-analyzer-for-infra",
+  "name": "traffic-analyzer-infra-app",
   "version": "0.0.0",
   "description": "A starting project with routing, fetching data, and charting",
   "scripts": {
