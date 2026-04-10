@@ -645,11 +645,11 @@ export const TrafficAnalyzer = () => {
                   <div style={{ flex: 1, border: TILE_BORDER, borderRadius: 8, padding: 8 }}>
                     <GaugeChart value={round(cpuForecast.high)} max={100} unit="percent" height={180}>
                       <GaugeChart.Label>CPU</GaugeChart.Label>
-                      <GaugeChart.ColorRule comparator="greater-or-equal" matchValue={0} color="#2a7453" />
-                      <GaugeChart.ColorRule comparator="greater-or-equal" matchValue={80} color="#a9780f" />
-                      <GaugeChart.ColorRule comparator="greater-or-equal" matchValue={90} color="#ae132d" />
-                      <GaugeChart.ThresholdIndicator value={80} showIndicator color="#a9780f" />
-                      <GaugeChart.ThresholdIndicator value={90} showIndicator color="#ae132d" />
+                      <GaugeChart.ColorRule comparator="greater-or-equal" matchValue={0} color="#00D26A" />
+                      <GaugeChart.ColorRule comparator="greater-or-equal" matchValue={80} color="#FCD53F" />
+                      <GaugeChart.ColorRule comparator="greater-or-equal" matchValue={90} color="#F8312F" />
+                      <GaugeChart.ThresholdIndicator value={80} showIndicator color="#FCD53F" />
+                      <GaugeChart.ThresholdIndicator value={90} showIndicator color="#F8312F" />
                     </GaugeChart>
                   </div>
                   <div style={{ flex: 1, border: TILE_BORDER, borderRadius: 8, padding: 8, display: "flex", alignItems: "center", textAlign: "center" }}>
@@ -669,11 +669,11 @@ export const TrafficAnalyzer = () => {
                   <div style={{ flex: 1, border: TILE_BORDER, borderRadius: 8, padding: 8 }}>
                     <GaugeChart value={round(memForecast.high * memPCC)} max={100} unit="percent" height={180}>
                       <GaugeChart.Label>Memory</GaugeChart.Label>
-                      <GaugeChart.ColorRule comparator="greater-or-equal" matchValue={0} color="#2a7453" />
-                      <GaugeChart.ColorRule comparator="greater-or-equal" matchValue={80} color="#a9780f" />
-                      <GaugeChart.ColorRule comparator="greater-or-equal" matchValue={90} color="#ae132d" />
-                      <GaugeChart.ThresholdIndicator value={80} showIndicator color="#a9780f" />
-                      <GaugeChart.ThresholdIndicator value={90} showIndicator color="#ae132d" />
+                      <GaugeChart.ColorRule comparator="greater-or-equal" matchValue={0} color="#00D26A" />
+                      <GaugeChart.ColorRule comparator="greater-or-equal" matchValue={80} color="#FCD53F" />
+                      <GaugeChart.ColorRule comparator="greater-or-equal" matchValue={90} color="#F8312F" />
+                      <GaugeChart.ThresholdIndicator value={80} showIndicator color="#FCD53F" />
+                      <GaugeChart.ThresholdIndicator value={90} showIndicator color="#F8312F" />
                     </GaugeChart>
                   </div>
                   <div style={{ flex: 1, border: TILE_BORDER, borderRadius: 8, padding: 8, display: "flex", alignItems: "center", textAlign: "center" }}>
@@ -693,11 +693,11 @@ export const TrafficAnalyzer = () => {
                   <div style={{ flex: 1, border: TILE_BORDER, borderRadius: 8, padding: 8 }}>
                     <GaugeChart value={round(diskForecast.high * diskPCC)} max={100} unit="percent" height={180}>
                       <GaugeChart.Label>Disk Free</GaugeChart.Label>
-                      <GaugeChart.ColorRule comparator="greater-or-equal" matchValue={0} color="#2a7453" />
-                      <GaugeChart.ColorRule comparator="greater-or-equal" matchValue={80} color="#a9780f" />
-                      <GaugeChart.ColorRule comparator="greater-or-equal" matchValue={90} color="#ae132d" />
-                      <GaugeChart.ThresholdIndicator value={80} showIndicator color="#a9780f" />
-                      <GaugeChart.ThresholdIndicator value={90} showIndicator color="#ae132d" />
+                      <GaugeChart.ColorRule comparator="greater-or-equal" matchValue={0} color="#00D26A" />
+                      <GaugeChart.ColorRule comparator="greater-or-equal" matchValue={80} color="#FCD53F" />
+                      <GaugeChart.ColorRule comparator="greater-or-equal" matchValue={90} color="#F8312F" />
+                      <GaugeChart.ThresholdIndicator value={80} showIndicator color="#FCD53F" />
+                      <GaugeChart.ThresholdIndicator value={90} showIndicator color="#F8312F" />
                     </GaugeChart>
                   </div>
                   <div style={{ flex: 1, border: TILE_BORDER, borderRadius: 8, padding: 8, display: "flex", alignItems: "center", textAlign: "center" }}>
