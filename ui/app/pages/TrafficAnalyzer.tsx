@@ -265,27 +265,27 @@ export const TrafficAnalyzer = () => {
 
   // Bar chart data
   const cpuBarData = useMemo(() => [
-    { category: "Observed Low", value: round(cpu.low), color: getResourceColor(cpu.low) },
-    { category: "Observed Average", value: round(cpu.avg), color: getResourceColor(cpu.avg) },
-    { category: "Observed High", value: round(cpu.high), color: getResourceColor(cpu.high) },
+    { category: "Observed Low", value: round(cpu.low), color: "#134FC9" },
+    { category: "Observed Average", value: round(cpu.avg), color: "#134FC9" },
+    { category: "Observed High", value: round(cpu.high), color: "#134FC9" },
     { category: "Forecast Low", value: round(cpuForecast.low), color: getResourceColor(cpuForecast.low) },
     { category: "Forecast Average", value: round(cpuForecast.avg), color: getResourceColor(cpuForecast.avg) },
     { category: "Forecast High", value: round(cpuForecast.high), color: getResourceColor(cpuForecast.high) },
   ], [cpu, cpuForecast]);
 
   const memBarData = useMemo(() => [
-    { category: "Observed Low", value: round(memory.low), color: getResourceColor(memory.low) },
-    { category: "Observed Average", value: round(memory.avg), color: getResourceColor(memory.avg) },
-    { category: "Observed High", value: round(memory.high), color: getResourceColor(memory.high) },
+    { category: "Observed Low", value: round(memory.low), color: "#134FC9" },
+    { category: "Observed Average", value: round(memory.avg), color: "#134FC9" },
+    { category: "Observed High", value: round(memory.high), color: "#134FC9" },
     { category: "Forecast Low", value: round(memForecast.low), color: getResourceColor(memForecast.low) },
     { category: "Forecast Average", value: round(memForecast.avg), color: getResourceColor(memForecast.avg) },
     { category: "Forecast High", value: round(memForecast.high), color: getResourceColor(memForecast.high) },
   ], [memory, memForecast]);
 
   const diskBarData = useMemo(() => [
-    { category: "Observed Low", value: round(disk.low), color: getResourceColor(disk.low) },
-    { category: "Observed Average", value: round(disk.avg), color: getResourceColor(disk.avg) },
-    { category: "Observed High", value: round(disk.high), color: getResourceColor(disk.high) },
+    { category: "Observed Low", value: round(disk.low), color: "#134FC9" },
+    { category: "Observed Average", value: round(disk.avg), color: "#134FC9" },
+    { category: "Observed High", value: round(disk.high), color: "#134FC9" },
     { category: "Forecast Low", value: round(diskForecast.low), color: getResourceColor(diskForecast.low) },
     { category: "Forecast Average", value: round(diskForecast.avg), color: getResourceColor(diskForecast.avg) },
     { category: "Forecast High", value: round(diskForecast.high), color: getResourceColor(diskForecast.high) },
