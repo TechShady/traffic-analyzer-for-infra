@@ -1,0 +1,666 @@
+{
+  "title": "DG K8s SRE Dashboard Report",
+  "description": "Runs all Kubernetes SRE dashboard tile queries, analyzes each with Dynatrace Intelligence, and emails a consolidated report.",
+  "isPrivate": false,
+  "tasks": {
+    "dql_total_clusters": {
+      "name": "dql_total_clusters",
+      "action": "dynatrace.automations:execute-dql-query",
+      "description": "Total Clusters",
+      "input": {
+        "query": "smartscapeNodes K8S_CLUSTER | summarize cluster_count = count()"
+      },
+      "position": { "x": 0, "y": 1 },
+      "predecessors": [],
+      "conditions": { "states": {}, "custom": "", "else": "SKIP" }
+    },
+    "prompt_total_clusters": {
+      "name": "prompt_total_clusters",
+      "action": "dynatrace.davis.copilot.workflow.actions:davis-copilot",
+      "description": "Analyze Total Clusters",
+      "input": {
+        "prompt": "Provide a brief SRE assessment:\n## Total Clusters\n",
+        "supplementary": "{{result(\"dql_total_clusters\")[\"records\"]}}",
+        "instruction": "Provide a concise analysis with key observations and any recommendations. Format as markdown.",
+        "autoTrim": true,
+        "config": "disabled"
+      },
+      "position": { "x": 0, "y": 2 },
+      "predecessors": ["dql_total_clusters"],
+      "conditions": { "states": { "dql_total_clusters": "OK" }, "custom": "", "else": "SKIP" },
+      "retry": { "count": 2, "delay": 30, "failedLoopIterationsOnly": true }
+    },
+    "dql_total_nodes": {
+      "name": "dql_total_nodes",
+      "action": "dynatrace.automations:execute-dql-query",
+      "description": "Total Nodes",
+      "input": {
+        "query": "smartscapeNodes K8S_NODE | summarize node_count = count()"
+      },
+      "position": { "x": 1, "y": 1 },
+      "predecessors": [],
+      "conditions": { "states": {}, "custom": "", "else": "SKIP" }
+    },
+    "prompt_total_nodes": {
+      "name": "prompt_total_nodes",
+      "action": "dynatrace.davis.copilot.workflow.actions:davis-copilot",
+      "description": "Analyze Total Nodes",
+      "input": {
+        "prompt": "Provide a brief SRE assessment:\n## Total Nodes\n",
+        "supplementary": "{{result(\"dql_total_nodes\")[\"records\"]}}",
+        "instruction": "Provide a concise analysis with key observations and any recommendations. Format as markdown.",
+        "autoTrim": true,
+        "config": "disabled"
+      },
+      "position": { "x": 1, "y": 2 },
+      "predecessors": ["dql_total_nodes"],
+      "conditions": { "states": { "dql_total_nodes": "OK" }, "custom": "", "else": "SKIP" },
+      "retry": { "count": 2, "delay": 30, "failedLoopIterationsOnly": true }
+    },
+    "dql_total_pods": {
+      "name": "dql_total_pods",
+      "action": "dynatrace.automations:execute-dql-query",
+      "description": "Total Pods",
+      "input": {
+        "query": "smartscapeNodes K8S_POD | summarize pod_count = count()"
+      },
+      "position": { "x": 2, "y": 1 },
+      "predecessors": [],
+      "conditions": { "states": {}, "custom": "", "else": "SKIP" }
+    },
+    "prompt_total_pods": {
+      "name": "prompt_total_pods",
+      "action": "dynatrace.davis.copilot.workflow.actions:davis-copilot",
+      "description": "Analyze Total Pods",
+      "input": {
+        "prompt": "Provide a brief SRE assessment:\n## Total Pods\n",
+        "supplementary": "{{result(\"dql_total_pods\")[\"records\"]}}",
+        "instruction": "Provide a concise analysis with key observations and any recommendations. Format as markdown.",
+        "autoTrim": true,
+        "config": "disabled"
+      },
+      "position": { "x": 2, "y": 2 },
+      "predecessors": ["dql_total_pods"],
+      "conditions": { "states": { "dql_total_pods": "OK" }, "custom": "", "else": "SKIP" },
+      "retry": { "count": 2, "delay": 30, "failedLoopIterationsOnly": true }
+    },
+    "dql_container_restarts": {
+      "name": "dql_container_restarts",
+      "action": "dynatrace.automations:execute-dql-query",
+      "description": "Container Restarts",
+      "input": {
+        "query": "timeseries restarts = sum(dt.kubernetes.container.restarts), by: {k8s.cluster.name} | fieldsAdd total = arraySum(restarts) | summarize total_restarts = sum(total)"
+      },
+      "position": { "x": 3, "y": 1 },
+      "predecessors": [],
+      "conditions": { "states": {}, "custom": "", "else": "SKIP" }
+    },
+    "prompt_container_restarts": {
+      "name": "prompt_container_restarts",
+      "action": "dynatrace.davis.copilot.workflow.actions:davis-copilot",
+      "description": "Analyze Container Restarts",
+      "input": {
+        "prompt": "Provide a brief SRE assessment:\n## Container Restarts\n",
+        "supplementary": "{{result(\"dql_container_restarts\")[\"records\"]}}",
+        "instruction": "Provide a concise analysis with key observations. Flag if restart count seems abnormal. Format as markdown.",
+        "autoTrim": true,
+        "config": "disabled"
+      },
+      "position": { "x": 3, "y": 2 },
+      "predecessors": ["dql_container_restarts"],
+      "conditions": { "states": { "dql_container_restarts": "OK" }, "custom": "", "else": "SKIP" },
+      "retry": { "count": 2, "delay": 30, "failedLoopIterationsOnly": true }
+    },
+    "dql_oom_kills": {
+      "name": "dql_oom_kills",
+      "action": "dynatrace.automations:execute-dql-query",
+      "description": "OOM Kills",
+      "input": {
+        "query": "timeseries oom = sum(dt.kubernetes.container.oom_kills), by: {k8s.cluster.name} | fieldsAdd total = arraySum(oom) | summarize total_oom_kills = sum(total)"
+      },
+      "position": { "x": 4, "y": 1 },
+      "predecessors": [],
+      "conditions": { "states": {}, "custom": "", "else": "SKIP" }
+    },
+    "prompt_oom_kills": {
+      "name": "prompt_oom_kills",
+      "action": "dynatrace.davis.copilot.workflow.actions:davis-copilot",
+      "description": "Analyze OOM Kills",
+      "input": {
+        "prompt": "Provide a brief SRE assessment:\n## OOM Kills\n",
+        "supplementary": "{{result(\"dql_oom_kills\")[\"records\"]}}",
+        "instruction": "Provide a concise analysis. Flag if any OOM kills are present — these are critical. Format as markdown.",
+        "autoTrim": true,
+        "config": "disabled"
+      },
+      "position": { "x": 4, "y": 2 },
+      "predecessors": ["dql_oom_kills"],
+      "conditions": { "states": { "dql_oom_kills": "OK" }, "custom": "", "else": "SKIP" },
+      "retry": { "count": 2, "delay": 30, "failedLoopIterationsOnly": true }
+    },
+    "dql_cpu_usage_by_cluster": {
+      "name": "dql_cpu_usage_by_cluster",
+      "action": "dynatrace.automations:execute-dql-query",
+      "description": "CPU Usage by Cluster",
+      "input": {
+        "query": "timeseries cpu = avg(dt.kubernetes.container.cpu_usage), by: {k8s.cluster.name} | fieldsAdd avg_cpu = arrayAvg(cpu) | fields k8s.cluster.name, avg_cpu | sort avg_cpu desc"
+      },
+      "position": { "x": 5, "y": 1 },
+      "predecessors": [],
+      "conditions": { "states": {}, "custom": "", "else": "SKIP" }
+    },
+    "prompt_cpu_usage_by_cluster": {
+      "name": "prompt_cpu_usage_by_cluster",
+      "action": "dynatrace.davis.copilot.workflow.actions:davis-copilot",
+      "description": "Analyze CPU Usage by Cluster",
+      "input": {
+        "prompt": "Provide a brief SRE assessment:\n## CPU Usage by Cluster\n",
+        "supplementary": "{{result(\"dql_cpu_usage_by_cluster\")[\"records\"]}}",
+        "instruction": "Identify clusters with highest CPU usage. Flag any that seem over-utilized. Format as markdown table and analysis.",
+        "autoTrim": true,
+        "config": "disabled"
+      },
+      "position": { "x": 5, "y": 2 },
+      "predecessors": ["dql_cpu_usage_by_cluster"],
+      "conditions": { "states": { "dql_cpu_usage_by_cluster": "OK" }, "custom": "", "else": "SKIP" },
+      "retry": { "count": 2, "delay": 30, "failedLoopIterationsOnly": true }
+    },
+    "dql_memory_usage_by_cluster": {
+      "name": "dql_memory_usage_by_cluster",
+      "action": "dynatrace.automations:execute-dql-query",
+      "description": "Memory Usage by Cluster",
+      "input": {
+        "query": "timeseries mem = avg(dt.kubernetes.container.memory_working_set), by: {k8s.cluster.name} | fieldsAdd avg_mem = arrayAvg(mem) | fields k8s.cluster.name, avg_mem | sort avg_mem desc"
+      },
+      "position": { "x": 6, "y": 1 },
+      "predecessors": [],
+      "conditions": { "states": {}, "custom": "", "else": "SKIP" }
+    },
+    "prompt_memory_usage_by_cluster": {
+      "name": "prompt_memory_usage_by_cluster",
+      "action": "dynatrace.davis.copilot.workflow.actions:davis-copilot",
+      "description": "Analyze Memory Usage by Cluster",
+      "input": {
+        "prompt": "Provide a brief SRE assessment:\n## Memory Usage by Cluster\n",
+        "supplementary": "{{result(\"dql_memory_usage_by_cluster\")[\"records\"]}}",
+        "instruction": "Identify clusters with highest memory usage. Flag any that seem over-utilized or at risk of OOM. Format as markdown.",
+        "autoTrim": true,
+        "config": "disabled"
+      },
+      "position": { "x": 6, "y": 2 },
+      "predecessors": ["dql_memory_usage_by_cluster"],
+      "conditions": { "states": { "dql_memory_usage_by_cluster": "OK" }, "custom": "", "else": "SKIP" },
+      "retry": { "count": 2, "delay": 30, "failedLoopIterationsOnly": true }
+    },
+    "dql_restarts_by_cluster": {
+      "name": "dql_restarts_by_cluster",
+      "action": "dynatrace.automations:execute-dql-query",
+      "description": "Container Restarts by Cluster",
+      "input": {
+        "query": "timeseries restarts = sum(dt.kubernetes.container.restarts), by: {k8s.cluster.name} | fieldsAdd total_restarts = arraySum(restarts) | fields k8s.cluster.name, total_restarts | filter total_restarts > 0 | sort total_restarts desc"
+      },
+      "position": { "x": 7, "y": 1 },
+      "predecessors": [],
+      "conditions": { "states": {}, "custom": "", "else": "SKIP" }
+    },
+    "prompt_restarts_by_cluster": {
+      "name": "prompt_restarts_by_cluster",
+      "action": "dynatrace.davis.copilot.workflow.actions:davis-copilot",
+      "description": "Analyze Container Restarts by Cluster",
+      "input": {
+        "prompt": "Provide a brief SRE assessment:\n## Container Restarts by Cluster\n",
+        "supplementary": "{{result(\"dql_restarts_by_cluster\")[\"records\"]}}",
+        "instruction": "Identify which clusters have the most restarts and flag any that seem abnormally high. Format as markdown.",
+        "autoTrim": true,
+        "config": "disabled"
+      },
+      "position": { "x": 7, "y": 2 },
+      "predecessors": ["dql_restarts_by_cluster"],
+      "conditions": { "states": { "dql_restarts_by_cluster": "OK" }, "custom": "", "else": "SKIP" },
+      "retry": { "count": 2, "delay": 30, "failedLoopIterationsOnly": true }
+    },
+    "dql_oom_by_cluster": {
+      "name": "dql_oom_by_cluster",
+      "action": "dynatrace.automations:execute-dql-query",
+      "description": "OOM Kills by Cluster",
+      "input": {
+        "query": "timeseries oom = sum(dt.kubernetes.container.oom_kills), by: {k8s.cluster.name} | fieldsAdd total_oom = arraySum(oom) | fields k8s.cluster.name, total_oom | filter total_oom > 0 | sort total_oom desc"
+      },
+      "position": { "x": 8, "y": 1 },
+      "predecessors": [],
+      "conditions": { "states": {}, "custom": "", "else": "SKIP" }
+    },
+    "prompt_oom_by_cluster": {
+      "name": "prompt_oom_by_cluster",
+      "action": "dynatrace.davis.copilot.workflow.actions:davis-copilot",
+      "description": "Analyze OOM Kills by Cluster",
+      "input": {
+        "prompt": "Provide a brief SRE assessment:\n## OOM Kills by Cluster\n",
+        "supplementary": "{{result(\"dql_oom_by_cluster\")[\"records\"]}}",
+        "instruction": "Identify affected clusters and assess severity. OOM kills indicate memory limits need adjusting. Format as markdown.",
+        "autoTrim": true,
+        "config": "disabled"
+      },
+      "position": { "x": 8, "y": 2 },
+      "predecessors": ["dql_oom_by_cluster"],
+      "conditions": { "states": { "dql_oom_by_cluster": "OK" }, "custom": "", "else": "SKIP" },
+      "retry": { "count": 2, "delay": 30, "failedLoopIterationsOnly": true }
+    },
+    "dql_degraded_deployments": {
+      "name": "dql_degraded_deployments",
+      "action": "dynatrace.automations:execute-dql-query",
+      "description": "Degraded Deployments",
+      "input": {
+        "query": "smartscapeNodes K8S_DEPLOYMENT | parse k8s.object, \"JSON:config\" | fieldsAdd desired = config[`spec`][`replicas`], ready = config[`status`][`readyReplicas`], available = config[`status`][`availableReplicas`] | filter isNotNull(desired) and desired > 0 and (isNull(ready) or ready < desired) | fields k8s.cluster.name, k8s.namespace.name, k8s.workload.name, desired, ready, available | sort k8s.cluster.name asc"
+      },
+      "position": { "x": 9, "y": 1 },
+      "predecessors": [],
+      "conditions": { "states": {}, "custom": "", "else": "SKIP" }
+    },
+    "prompt_degraded_deployments": {
+      "name": "prompt_degraded_deployments",
+      "action": "dynatrace.davis.copilot.workflow.actions:davis-copilot",
+      "description": "Analyze Degraded Deployments",
+      "input": {
+        "prompt": "Provide a brief SRE assessment:\n## Degraded Deployments\n",
+        "supplementary": "{{result(\"dql_degraded_deployments\")[\"records\"]}}",
+        "instruction": "List each degraded deployment with its cluster and namespace. Assess impact severity. Recommend remediation steps. Format as markdown.",
+        "autoTrim": true,
+        "config": "disabled"
+      },
+      "position": { "x": 9, "y": 2 },
+      "predecessors": ["dql_degraded_deployments"],
+      "conditions": { "states": { "dql_degraded_deployments": "OK" }, "custom": "", "else": "SKIP" },
+      "retry": { "count": 2, "delay": 30, "failedLoopIterationsOnly": true }
+    },
+    "dql_stuck_rollouts": {
+      "name": "dql_stuck_rollouts",
+      "action": "dynatrace.automations:execute-dql-query",
+      "description": "Stuck Rollouts",
+      "input": {
+        "query": "smartscapeNodes K8S_DEPLOYMENT | parse k8s.object, \"JSON:config\" | expand condition = config[`status`][`conditions`] | fieldsAdd cond_type = condition[`type`], cond_reason = condition[`reason`], cond_message = condition[`message`] | filter cond_type == \"Progressing\" and cond_reason == \"ProgressDeadlineExceeded\" | fields k8s.cluster.name, k8s.namespace.name, k8s.workload.name, cond_message"
+      },
+      "position": { "x": 10, "y": 1 },
+      "predecessors": [],
+      "conditions": { "states": {}, "custom": "", "else": "SKIP" }
+    },
+    "prompt_stuck_rollouts": {
+      "name": "prompt_stuck_rollouts",
+      "action": "dynatrace.davis.copilot.workflow.actions:davis-copilot",
+      "description": "Analyze Stuck Rollouts",
+      "input": {
+        "prompt": "Provide a brief SRE assessment:\n## Stuck Rollouts\n",
+        "supplementary": "{{result(\"dql_stuck_rollouts\")[\"records\"]}}",
+        "instruction": "Identify stuck deployments and their clusters. Explain common causes (bad image, quota, probe failures). Recommend immediate actions. Format as markdown.",
+        "autoTrim": true,
+        "config": "disabled"
+      },
+      "position": { "x": 10, "y": 2 },
+      "predecessors": ["dql_stuck_rollouts"],
+      "conditions": { "states": { "dql_stuck_rollouts": "OK" }, "custom": "", "else": "SKIP" },
+      "retry": { "count": 2, "delay": 30, "failedLoopIterationsOnly": true }
+    },
+    "dql_pods_not_running": {
+      "name": "dql_pods_not_running",
+      "action": "dynatrace.automations:execute-dql-query",
+      "description": "Pods Not Running",
+      "input": {
+        "query": "smartscapeNodes K8S_POD | parse k8s.object, \"JSON:config\" | fieldsAdd phase = config[`status`][`phase`] | filter phase != \"Running\" and phase != \"Succeeded\" | fields k8s.cluster.name, k8s.namespace.name, k8s.pod.name, phase | sort k8s.cluster.name asc"
+      },
+      "position": { "x": 11, "y": 1 },
+      "predecessors": [],
+      "conditions": { "states": {}, "custom": "", "else": "SKIP" }
+    },
+    "prompt_pods_not_running": {
+      "name": "prompt_pods_not_running",
+      "action": "dynatrace.davis.copilot.workflow.actions:davis-copilot",
+      "description": "Analyze Pods Not Running",
+      "input": {
+        "prompt": "Provide a brief SRE assessment:\n## Pods Not Running\n",
+        "supplementary": "{{result(\"dql_pods_not_running\")[\"records\"]}}",
+        "instruction": "Group by phase (Pending, Failed, Unknown). Identify patterns (same namespace, same cluster). Recommend investigation steps. Format as markdown.",
+        "autoTrim": true,
+        "config": "disabled"
+      },
+      "position": { "x": 11, "y": 2 },
+      "predecessors": ["dql_pods_not_running"],
+      "conditions": { "states": { "dql_pods_not_running": "OK" }, "custom": "", "else": "SKIP" },
+      "retry": { "count": 2, "delay": 30, "failedLoopIterationsOnly": true }
+    },
+    "dql_top_restarting_pods": {
+      "name": "dql_top_restarting_pods",
+      "action": "dynatrace.automations:execute-dql-query",
+      "description": "Top Restarting Pods",
+      "input": {
+        "query": "timeseries restarts = sum(dt.kubernetes.container.restarts), by: {k8s.pod.name, k8s.namespace.name, k8s.cluster.name} | fieldsAdd total_restarts = arraySum(restarts) | filter total_restarts > 0 | sort total_restarts desc | fields k8s.cluster.name, k8s.namespace.name, k8s.pod.name, total_restarts | limit 20"
+      },
+      "position": { "x": 12, "y": 1 },
+      "predecessors": [],
+      "conditions": { "states": {}, "custom": "", "else": "SKIP" }
+    },
+    "prompt_top_restarting_pods": {
+      "name": "prompt_top_restarting_pods",
+      "action": "dynatrace.davis.copilot.workflow.actions:davis-copilot",
+      "description": "Analyze Top Restarting Pods",
+      "input": {
+        "prompt": "Provide a brief SRE assessment:\n## Top Restarting Pods\n",
+        "supplementary": "{{result(\"dql_top_restarting_pods\")[\"records\"]}}",
+        "instruction": "Identify the worst offenders and patterns. Are restarts concentrated in specific clusters or namespaces? Recommend investigation priority. Format as markdown.",
+        "autoTrim": true,
+        "config": "disabled"
+      },
+      "position": { "x": 12, "y": 2 },
+      "predecessors": ["dql_top_restarting_pods"],
+      "conditions": { "states": { "dql_top_restarting_pods": "OK" }, "custom": "", "else": "SKIP" },
+      "retry": { "count": 2, "delay": 30, "failedLoopIterationsOnly": true }
+    },
+    "dql_unhealthy_nodes": {
+      "name": "dql_unhealthy_nodes",
+      "action": "dynatrace.automations:execute-dql-query",
+      "description": "Unhealthy Nodes",
+      "input": {
+        "query": "smartscapeNodes K8S_NODE | parse k8s.object, \"JSON:config\" | expand condition = config[`status`][`conditions`] | fieldsAdd cond_type = condition[`type`], cond_status = condition[`status`], message = condition[`message`] | filter (cond_type == \"Ready\" and cond_status != \"True\") or (in(cond_type, array(\"MemoryPressure\",\"DiskPressure\",\"PIDPressure\")) and cond_status == \"True\") | fields k8s.cluster.name, k8s.node.name, cond_type, cond_status, message"
+      },
+      "position": { "x": 13, "y": 1 },
+      "predecessors": [],
+      "conditions": { "states": {}, "custom": "", "else": "SKIP" }
+    },
+    "prompt_unhealthy_nodes": {
+      "name": "prompt_unhealthy_nodes",
+      "action": "dynatrace.davis.copilot.workflow.actions:davis-copilot",
+      "description": "Analyze Unhealthy Nodes",
+      "input": {
+        "prompt": "Provide a brief SRE assessment:\n## Unhealthy Nodes\n",
+        "supplementary": "{{result(\"dql_unhealthy_nodes\")[\"records\"]}}",
+        "instruction": "Identify nodes with NotReady, MemoryPressure, DiskPressure, or PIDPressure. Assess blast radius. Recommend immediate actions. Format as markdown.",
+        "autoTrim": true,
+        "config": "disabled"
+      },
+      "position": { "x": 13, "y": 2 },
+      "predecessors": ["dql_unhealthy_nodes"],
+      "conditions": { "states": { "dql_unhealthy_nodes": "OK" }, "custom": "", "else": "SKIP" },
+      "retry": { "count": 2, "delay": 30, "failedLoopIterationsOnly": true }
+    },
+    "dql_node_count_by_cluster": {
+      "name": "dql_node_count_by_cluster",
+      "action": "dynatrace.automations:execute-dql-query",
+      "description": "Node Count by Cluster",
+      "input": {
+        "query": "smartscapeNodes K8S_NODE | summarize node_count = count(), by: {k8s.cluster.name} | sort node_count desc"
+      },
+      "position": { "x": 14, "y": 1 },
+      "predecessors": [],
+      "conditions": { "states": {}, "custom": "", "else": "SKIP" }
+    },
+    "prompt_node_count_by_cluster": {
+      "name": "prompt_node_count_by_cluster",
+      "action": "dynatrace.davis.copilot.workflow.actions:davis-copilot",
+      "description": "Analyze Node Count by Cluster",
+      "input": {
+        "prompt": "Provide a brief SRE assessment:\n## Node Count by Cluster\n",
+        "supplementary": "{{result(\"dql_node_count_by_cluster\")[\"records\"]}}",
+        "instruction": "Assess node distribution. Identify clusters that may be undersized or oversized. Format as markdown.",
+        "autoTrim": true,
+        "config": "disabled"
+      },
+      "position": { "x": 14, "y": 2 },
+      "predecessors": ["dql_node_count_by_cluster"],
+      "conditions": { "states": { "dql_node_count_by_cluster": "OK" }, "custom": "", "else": "SKIP" },
+      "retry": { "count": 2, "delay": 30, "failedLoopIterationsOnly": true }
+    },
+    "dql_cpu_throttled_containers": {
+      "name": "dql_cpu_throttled_containers",
+      "action": "dynatrace.automations:execute-dql-query",
+      "description": "CPU Throttled Containers (>25%)",
+      "input": {
+        "query": "timeseries { throttled = avg(dt.kubernetes.container.cpu_throttled), limit_cpu = avg(dt.kubernetes.container.limits_cpu), usage = avg(dt.kubernetes.container.cpu_usage) }, by: {k8s.pod.name, k8s.namespace.name, k8s.cluster.name} | fieldsAdd throttle_pct = if(arrayAvg(limit_cpu) > 0, (arrayAvg(throttled) / arrayAvg(limit_cpu)) * 100, else: 0) | filter throttle_pct > 25 | sort throttle_pct desc | fields k8s.cluster.name, k8s.namespace.name, k8s.pod.name, throttle_pct | limit 20"
+      },
+      "position": { "x": 15, "y": 1 },
+      "predecessors": [],
+      "conditions": { "states": {}, "custom": "", "else": "SKIP" }
+    },
+    "prompt_cpu_throttled_containers": {
+      "name": "prompt_cpu_throttled_containers",
+      "action": "dynatrace.davis.copilot.workflow.actions:davis-copilot",
+      "description": "Analyze CPU Throttled Containers",
+      "input": {
+        "prompt": "Provide a brief SRE assessment:\n## CPU Throttled Containers\n",
+        "supplementary": "{{result(\"dql_cpu_throttled_containers\")[\"records\"]}}",
+        "instruction": "Identify the worst throttled containers and their clusters. High throttling causes latency. Recommend CPU limit adjustments. Format as markdown.",
+        "autoTrim": true,
+        "config": "disabled"
+      },
+      "position": { "x": 15, "y": 2 },
+      "predecessors": ["dql_cpu_throttled_containers"],
+      "conditions": { "states": { "dql_cpu_throttled_containers": "OK" }, "custom": "", "else": "SKIP" },
+      "retry": { "count": 2, "delay": 30, "failedLoopIterationsOnly": true }
+    },
+    "dql_cpu_throttling_trend": {
+      "name": "dql_cpu_throttling_trend",
+      "action": "dynatrace.automations:execute-dql-query",
+      "description": "CPU Throttling Trend",
+      "input": {
+        "query": "timeseries throttled = avg(dt.kubernetes.container.cpu_throttled), by: {k8s.cluster.name} | fieldsAdd avg_throttled = arrayAvg(throttled) | fields k8s.cluster.name, avg_throttled | sort avg_throttled desc"
+      },
+      "position": { "x": 16, "y": 1 },
+      "predecessors": [],
+      "conditions": { "states": {}, "custom": "", "else": "SKIP" }
+    },
+    "prompt_cpu_throttling_trend": {
+      "name": "prompt_cpu_throttling_trend",
+      "action": "dynatrace.davis.copilot.workflow.actions:davis-copilot",
+      "description": "Analyze CPU Throttling Trend",
+      "input": {
+        "prompt": "Provide a brief SRE assessment:\n## CPU Throttling Trend\n",
+        "supplementary": "{{result(\"dql_cpu_throttling_trend\")[\"records\"]}}",
+        "instruction": "Identify clusters with the highest average throttling. Assess trends. Format as markdown.",
+        "autoTrim": true,
+        "config": "disabled"
+      },
+      "position": { "x": 16, "y": 2 },
+      "predecessors": ["dql_cpu_throttling_trend"],
+      "conditions": { "states": { "dql_cpu_throttling_trend": "OK" }, "custom": "", "else": "SKIP" },
+      "retry": { "count": 2, "delay": 30, "failedLoopIterationsOnly": true }
+    },
+    "dql_error_logs_by_namespace": {
+      "name": "dql_error_logs_by_namespace",
+      "action": "dynatrace.automations:execute-dql-query",
+      "description": "Error Logs by Namespace",
+      "input": {
+        "query": "fetch logs | filter isNotNull(k8s.namespace.name) and loglevel == \"ERROR\" | summarize error_count = count(), by: {k8s.cluster.name, k8s.namespace.name} | sort error_count desc | limit 20"
+      },
+      "position": { "x": 17, "y": 1 },
+      "predecessors": [],
+      "conditions": { "states": {}, "custom": "", "else": "SKIP" }
+    },
+    "prompt_error_logs_by_namespace": {
+      "name": "prompt_error_logs_by_namespace",
+      "action": "dynatrace.davis.copilot.workflow.actions:davis-copilot",
+      "description": "Analyze Error Logs by Namespace",
+      "input": {
+        "prompt": "Provide a brief SRE assessment:\n## Error Logs by Namespace\n",
+        "supplementary": "{{result(\"dql_error_logs_by_namespace\")[\"records\"]}}",
+        "instruction": "Identify namespaces with the highest error counts. Flag any that seem abnormally high. Recommend investigation priorities. Format as markdown.",
+        "autoTrim": true,
+        "config": "disabled"
+      },
+      "position": { "x": 17, "y": 2 },
+      "predecessors": ["dql_error_logs_by_namespace"],
+      "conditions": { "states": { "dql_error_logs_by_namespace": "OK" }, "custom": "", "else": "SKIP" },
+      "retry": { "count": 2, "delay": 30, "failedLoopIterationsOnly": true }
+    },
+    "dql_error_log_trend": {
+      "name": "dql_error_log_trend",
+      "action": "dynatrace.automations:execute-dql-query",
+      "description": "K8s Error Log Trend",
+      "input": {
+        "query": "fetch logs | filter isNotNull(k8s.namespace.name) and loglevel == \"ERROR\" | summarize error_count = count(), by: {k8s.cluster.name} | sort error_count desc"
+      },
+      "position": { "x": 18, "y": 1 },
+      "predecessors": [],
+      "conditions": { "states": {}, "custom": "", "else": "SKIP" }
+    },
+    "prompt_error_log_trend": {
+      "name": "prompt_error_log_trend",
+      "action": "dynatrace.davis.copilot.workflow.actions:davis-copilot",
+      "description": "Analyze K8s Error Log Trend",
+      "input": {
+        "prompt": "Provide a brief SRE assessment:\n## K8s Error Log Trend\n",
+        "supplementary": "{{result(\"dql_error_log_trend\")[\"records\"]}}",
+        "instruction": "Identify clusters with the most errors. Assess whether error volumes are concerning. Format as markdown.",
+        "autoTrim": true,
+        "config": "disabled"
+      },
+      "position": { "x": 18, "y": 2 },
+      "predecessors": ["dql_error_log_trend"],
+      "conditions": { "states": { "dql_error_log_trend": "OK" }, "custom": "", "else": "SKIP" },
+      "retry": { "count": 2, "delay": 30, "failedLoopIterationsOnly": true }
+    },
+    "dql_pods_by_cluster": {
+      "name": "dql_pods_by_cluster",
+      "action": "dynatrace.automations:execute-dql-query",
+      "description": "Pods by Cluster",
+      "input": {
+        "query": "smartscapeNodes K8S_POD | summarize pod_count = count(), by: {k8s.cluster.name} | sort pod_count desc"
+      },
+      "position": { "x": 19, "y": 1 },
+      "predecessors": [],
+      "conditions": { "states": {}, "custom": "", "else": "SKIP" }
+    },
+    "prompt_pods_by_cluster": {
+      "name": "prompt_pods_by_cluster",
+      "action": "dynatrace.davis.copilot.workflow.actions:davis-copilot",
+      "description": "Analyze Pods by Cluster",
+      "input": {
+        "prompt": "Provide a brief SRE assessment:\n## Pods by Cluster\n",
+        "supplementary": "{{result(\"dql_pods_by_cluster\")[\"records\"]}}",
+        "instruction": "Assess pod distribution balance. Identify clusters that are heavily loaded. Format as markdown.",
+        "autoTrim": true,
+        "config": "disabled"
+      },
+      "position": { "x": 19, "y": 2 },
+      "predecessors": ["dql_pods_by_cluster"],
+      "conditions": { "states": { "dql_pods_by_cluster": "OK" }, "custom": "", "else": "SKIP" },
+      "retry": { "count": 2, "delay": 30, "failedLoopIterationsOnly": true }
+    },
+    "dql_workloads_by_type": {
+      "name": "dql_workloads_by_type",
+      "action": "dynatrace.automations:execute-dql-query",
+      "description": "Workloads by Type",
+      "input": {
+        "query": "smartscapeNodes K8S_DEPLOYMENT, K8S_STATEFULSET, K8S_DAEMONSET | summarize workload_count = count(), by: {k8s.workload.kind} | sort workload_count desc"
+      },
+      "position": { "x": 20, "y": 1 },
+      "predecessors": [],
+      "conditions": { "states": {}, "custom": "", "else": "SKIP" }
+    },
+    "prompt_workloads_by_type": {
+      "name": "prompt_workloads_by_type",
+      "action": "dynatrace.davis.copilot.workflow.actions:davis-copilot",
+      "description": "Analyze Workloads by Type",
+      "input": {
+        "prompt": "Provide a brief SRE assessment:\n## Workloads by Type\n",
+        "supplementary": "{{result(\"dql_workloads_by_type\")[\"records\"]}}",
+        "instruction": "Assess workload composition (Deployments vs StatefulSets vs DaemonSets). Provide observations. Format as markdown.",
+        "autoTrim": true,
+        "config": "disabled"
+      },
+      "position": { "x": 20, "y": 2 },
+      "predecessors": ["dql_workloads_by_type"],
+      "conditions": { "states": { "dql_workloads_by_type": "OK" }, "custom": "", "else": "SKIP" },
+      "retry": { "count": 2, "delay": 30, "failedLoopIterationsOnly": true }
+    },
+    "dql_namespaces_per_cluster": {
+      "name": "dql_namespaces_per_cluster",
+      "action": "dynatrace.automations:execute-dql-query",
+      "description": "Namespaces per Cluster",
+      "input": {
+        "query": "smartscapeNodes K8S_NAMESPACE | summarize ns_count = count(), by: {k8s.cluster.name} | sort ns_count desc"
+      },
+      "position": { "x": 21, "y": 1 },
+      "predecessors": [],
+      "conditions": { "states": {}, "custom": "", "else": "SKIP" }
+    },
+    "prompt_namespaces_per_cluster": {
+      "name": "prompt_namespaces_per_cluster",
+      "action": "dynatrace.davis.copilot.workflow.actions:davis-copilot",
+      "description": "Analyze Namespaces per Cluster",
+      "input": {
+        "prompt": "Provide a brief SRE assessment:\n## Namespaces per Cluster\n",
+        "supplementary": "{{result(\"dql_namespaces_per_cluster\")[\"records\"]}}",
+        "instruction": "Assess namespace distribution. Identify clusters with high namespace counts. Format as markdown.",
+        "autoTrim": true,
+        "config": "disabled"
+      },
+      "position": { "x": 21, "y": 2 },
+      "predecessors": ["dql_namespaces_per_cluster"],
+      "conditions": { "states": { "dql_namespaces_per_cluster": "OK" }, "custom": "", "else": "SKIP" },
+      "retry": { "count": 2, "delay": 30, "failedLoopIterationsOnly": true }
+    },
+    "email_k8s_report": {
+      "name": "email_k8s_report",
+      "action": "dynatrace.email:send-email",
+      "description": "Send consolidated K8s SRE report email",
+      "input": {
+        "to": ["john.kelly@dynatrace.com"],
+        "cc": [],
+        "bcc": [],
+        "subject": "Dollar General - Kubernetes SRE Report",
+        "content": "# Dollar General - Kubernetes SRE Report\n\n---\n\n## Infrastructure Overview\n\n### Total Clusters\n{{result(\"prompt_total_clusters\").text}}\n\n### Total Nodes\n{{result(\"prompt_total_nodes\").text}}\n\n### Total Pods\n{{result(\"prompt_total_pods\").text}}\n\n---\n\n## Container Health\n\n### Container Restarts\n{{result(\"prompt_container_restarts\").text}}\n\n### OOM Kills\n{{result(\"prompt_oom_kills\").text}}\n\n---\n\n## Cluster Resource Utilization\n\n### CPU Usage by Cluster\n{{result(\"prompt_cpu_usage_by_cluster\").text}}\n\n### Memory Usage by Cluster\n{{result(\"prompt_memory_usage_by_cluster\").text}}\n\n---\n\n## Container Restarts & OOM by Cluster\n\n### Restarts by Cluster\n{{result(\"prompt_restarts_by_cluster\").text}}\n\n### OOM Kills by Cluster\n{{result(\"prompt_oom_by_cluster\").text}}\n\n---\n\n## Workload Health\n\n### Degraded Deployments\n{{result(\"prompt_degraded_deployments\").text}}\n\n### Stuck Rollouts\n{{result(\"prompt_stuck_rollouts\").text}}\n\n---\n\n## Pod Issues\n\n### Pods Not Running\n{{result(\"prompt_pods_not_running\").text}}\n\n### Top Restarting Pods\n{{result(\"prompt_top_restarting_pods\").text}}\n\n---\n\n## Node Health\n\n### Unhealthy Nodes\n{{result(\"prompt_unhealthy_nodes\").text}}\n\n### Node Count by Cluster\n{{result(\"prompt_node_count_by_cluster\").text}}\n\n---\n\n## CPU Throttling\n\n### CPU Throttled Containers (>25%)\n{{result(\"prompt_cpu_throttled_containers\").text}}\n\n### CPU Throttling Trend\n{{result(\"prompt_cpu_throttling_trend\").text}}\n\n---\n\n## Error Logs\n\n### Error Logs by Namespace\n{{result(\"prompt_error_logs_by_namespace\").text}}\n\n### Error Log Trend\n{{result(\"prompt_error_log_trend\").text}}\n\n---\n\n## Cluster Inventory\n\n### Pods by Cluster\n{{result(\"prompt_pods_by_cluster\").text}}\n\n### Workloads by Type\n{{result(\"prompt_workloads_by_type\").text}}\n\n### Namespaces per Cluster\n{{result(\"prompt_namespaces_per_cluster\").text}}\n\n---\n\n[Open K8s SRE Dashboard](https://eqa16582.apps.dynatrace.com/ui/apps/dynatrace.dashboards/dashboard/534ee813-6c54-4528-9c12-5ba53807814e)\n"
+      },
+      "position": { "x": 10, "y": 3 },
+      "predecessors": [
+        "prompt_total_clusters",
+        "prompt_total_nodes",
+        "prompt_total_pods",
+        "prompt_container_restarts",
+        "prompt_oom_kills",
+        "prompt_cpu_usage_by_cluster",
+        "prompt_memory_usage_by_cluster",
+        "prompt_restarts_by_cluster",
+        "prompt_oom_by_cluster",
+        "prompt_degraded_deployments",
+        "prompt_stuck_rollouts",
+        "prompt_pods_not_running",
+        "prompt_top_restarting_pods",
+        "prompt_unhealthy_nodes",
+        "prompt_node_count_by_cluster",
+        "prompt_cpu_throttled_containers",
+        "prompt_cpu_throttling_trend",
+        "prompt_error_logs_by_namespace",
+        "prompt_error_log_trend",
+        "prompt_pods_by_cluster",
+        "prompt_workloads_by_type",
+        "prompt_namespaces_per_cluster"
+      ],
+      "conditions": {
+        "states": {
+          "prompt_total_clusters": "OK",
+          "prompt_total_nodes": "OK",
+          "prompt_total_pods": "OK",
+          "prompt_container_restarts": "OK",
+          "prompt_oom_kills": "OK",
+          "prompt_cpu_usage_by_cluster": "OK",
+          "prompt_memory_usage_by_cluster": "OK",
+          "prompt_restarts_by_cluster": "OK",
+          "prompt_oom_by_cluster": "OK",
+          "prompt_degraded_deployments": "OK",
+          "prompt_stuck_rollouts": "OK",
+          "prompt_pods_not_running": "OK",
+          "prompt_top_restarting_pods": "OK",
+          "prompt_unhealthy_nodes": "OK",
+          "prompt_node_count_by_cluster": "OK",
+          "prompt_cpu_throttled_containers": "OK",
+          "prompt_cpu_throttling_trend": "OK",
+          "prompt_error_logs_by_namespace": "OK",
+          "prompt_error_log_trend": "OK",
+          "prompt_pods_by_cluster": "OK",
+          "prompt_workloads_by_type": "OK",
+          "prompt_namespaces_per_cluster": "OK"
+        },
+        "custom": "",
+        "else": "SKIP"
+      }
+    }
+  }
+}

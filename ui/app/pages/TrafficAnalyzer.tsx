@@ -1,8 +1,10 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import "./TrafficAnalyzer.css";
 import { Flex } from "@dynatrace/strato-components/layouts";
-import { Heading, Strong } from "@dynatrace/strato-components/typography";
+import { Heading, Strong, Paragraph } from "@dynatrace/strato-components/typography";
 import { SingleValue } from "@dynatrace/strato-components/charts";
+import { HoneycombChart } from "@dynatrace/strato-components/charts";
+import type { HoneycombTileNumericData } from "@dynatrace/strato-components/charts";
 import { CategoricalBarChart } from "@dynatrace/strato-components-preview/charts";
 import { GaugeChart } from "@dynatrace/strato-components-preview/charts";
 import { Select } from "@dynatrace/strato-components-preview/forms";
@@ -27,6 +29,7 @@ import {
   parseAnalytics,
   forecast,
   forecastForHost,
+  computePCC,
 } from "../queries";
 import type { MetricsData, AnalyticsData } from "../queries";
 
@@ -98,6 +101,45 @@ function SubHeader({ title }: { title: string }) {
       <Strong style={{ color: "#fff", letterSpacing: 0.3 }}>{title}</Strong>
     </div>
   );
+}
+
+const GREEN = "#00D26A";
+const YELLOW = "#FCD53F";
+const RED = "#F8312F";
+const BLUE = "#134FC9";
+
+function InsightBox({ children, color }: { children: React.ReactNode; color?: string }) {
+  return (
+    <div style={{ padding: "12px 16px", background: "linear-gradient(135deg, rgba(30, 35, 55, 0.7) 0%, rgba(22, 26, 42, 0.9) 100%)", border: `1px solid ${color ?? "rgba(69, 137, 255, 0.3)"}`, borderLeft: `4px solid ${color ?? "#4589FF"}`, borderRadius: 8, fontSize: 13, lineHeight: 1.7, color: "#d0d4e0" }}>
+      {children}
+    </div>
+  );
+}
+
+interface AlertRule {
+  id: number;
+  metric: string;
+  comparator: string;
+  threshold: number;
+  host?: string;
+}
+
+interface Scenario {
+  id: number;
+  name: string;
+  trafficPercent: number;
+}
+
+interface Baseline {
+  id: number;
+  name: string;
+  timestamp: string;
+  cpuHigh: number;
+  memHigh: number;
+  diskHigh: number;
+  cpuPCC: number;
+  memPCC: number;
+  diskPCC: number;
 }
 
 const TILE_BORDER = "1px solid rgba(99, 130, 191, 0.25)";
@@ -172,6 +214,25 @@ export const TrafficAnalyzer = () => {
   const [cpuColSizing, setCpuColSizing] = useState<Record<string, number>>({});
   const [memColSizing, setMemColSizing] = useState<Record<string, number>>({});
   const [diskColSizing, setDiskColSizing] = useState<Record<string, number>>({});
+
+  // What-If Scenarios state
+  const [scenarios, setScenarios] = useState<Scenario[]>([
+    { id: 1, name: "Low", trafficPercent: 50 },
+    { id: 2, name: "Expected", trafficPercent: 100 },
+    { id: 3, name: "Peak", trafficPercent: 200 },
+  ]);
+  const [newScenarioName, setNewScenarioName] = useState("");
+  const [newScenarioPercent, setNewScenarioPercent] = useState<number>(100);
+
+  // Alert Rules state
+  const [alertRules, setAlertRules] = useState<AlertRule[]>([]);
+  const [newAlertMetric, setNewAlertMetric] = useState("Forecast CPU High");
+  const [newAlertComparator, setNewAlertComparator] = useState(">");
+  const [newAlertThreshold, setNewAlertThreshold] = useState<number>(90);
+
+  // Baselines state
+  const [baselines, setBaselines] = useState<Baseline[]>([]);
+  const [baselineName, setBaselineName] = useState("");
 
   // Fetch host group list
   const hostGroupList = useDql({ query: hostGroupListQuery() });
@@ -266,6 +327,8 @@ export const TrafficAnalyzer = () => {
   const memProvisioning = provisionGoal - memForecast.high * memPCC;
   const diskProvisioning = provisionGoal - diskForecast.high * diskPCC;
 
+
+
   // Bar chart data
   const cpuBarData = useMemo(() => [
     { category: "Observed Low", value: round(cpu.low), color: "#134FC9" },
@@ -330,6 +393,270 @@ export const TrafficAnalyzer = () => {
     setProvisionGoal(tempProvisionGoal);
     setSettingsOpen(false);
   };
+
+  // ═══════════════════════ NEW FEATURES — Computed Data ═══════════════════════
+
+  // --- Saturation Countdown (linear regression → days to provision goal) ---
+  const saturationData = useMemo(() => {
+    if (!cpuTableData.length) return [];
+    const cpuMap = new Map(cpuTableData.map((r) => [r["Host Name"], r]));
+    const memMap = new Map(memTableData.map((r) => [r["Host Name"], r]));
+    const diskMap = new Map(diskTableData.map((r) => [r["Host Name"], r]));
+    const hosts = Array.from(new Set([...cpuMap.keys(), ...memMap.keys(), ...diskMap.keys()]));
+    return hosts.map((h) => {
+      const c = cpuMap.get(h);
+      const m = memMap.get(h);
+      const d = diskMap.get(h);
+      const cpuCurrent = c ? c["Observed CPU High"] : 0;
+      const cpuFc = c ? c["Forecast CPU High"] : 0;
+      const memCurrent = m ? m["Observed MEM High"] : 0;
+      const memFc = m ? m["Forecast MEM High"] : 0;
+      const diskCurrent = d ? d["Observed Disk Free High"] : 0;
+      const diskFc = d ? d["Forecast Disk Free High"] : 0;
+      const daysToSat = (current: number, fc: number) => {
+        if (fc <= current || fc <= 0) return Infinity;
+        const ratePerDay = (fc - current) / (timeframeDays || 7);
+        const gap = provisionGoal - current;
+        return ratePerDay > 0 && gap > 0 ? Math.round(gap / ratePerDay) : Infinity;
+      };
+      const cpuDays = daysToSat(cpuCurrent, cpuFc);
+      const memDays = daysToSat(memCurrent, memFc);
+      const diskDays = daysToSat(diskCurrent, diskFc);
+      const minDays = Math.min(cpuDays, memDays, diskDays);
+      return {
+        "Host Name": h,
+        "CPU Current (%)": cpuCurrent,
+        "CPU Days to Saturation": cpuDays === Infinity ? "—" : cpuDays,
+        "MEM Current (%)": memCurrent,
+        "MEM Days to Saturation": memDays === Infinity ? "—" : memDays,
+        "Disk Current (%)": diskCurrent,
+        "Disk Days to Saturation": diskDays === Infinity ? "—" : diskDays,
+        "Earliest Saturation": minDays === Infinity ? "—" : `${minDays}d`,
+        _minDays: minDays,
+      };
+    }).sort((a, b) => (a._minDays === Infinity ? 999999 : a._minDays) - (b._minDays === Infinity ? 999999 : b._minDays));
+  }, [cpuTableData, memTableData, diskTableData, provisionGoal, timeframeDays]);
+
+  // --- What-If Scenarios ---
+  const scenarioResults = useMemo(() => {
+    if (!metrics) return [];
+    return scenarios.map((s) => {
+      const cf = forecast(cpu, s.trafficPercent, traffic.change, cpuPCC);
+      const mf = forecast(memory, s.trafficPercent, traffic.change, memPCC);
+      const df = forecast(disk, s.trafficPercent, traffic.change, diskPCC);
+      return {
+        Scenario: s.name,
+        "Traffic %": s.trafficPercent,
+        "CPU High": round(cf.high),
+        "CPU Prov.": round(provisionGoal - cf.high * cpuPCC),
+        "MEM High": round(mf.high),
+        "MEM Prov.": round(provisionGoal - mf.high * memPCC),
+        "Disk High": round(df.high),
+        "Disk Prov.": round(provisionGoal - df.high * diskPCC),
+      };
+    });
+  }, [scenarios, metrics, cpu, memory, disk, traffic.change, cpuPCC, memPCC, diskPCC, provisionGoal]);
+
+  const addScenario = useCallback(() => {
+    if (!newScenarioName.trim()) return;
+    setScenarios((prev) => [...prev, { id: Date.now(), name: newScenarioName.trim(), trafficPercent: newScenarioPercent }]);
+    setNewScenarioName("");
+  }, [newScenarioName, newScenarioPercent]);
+
+  // --- Right-Sizing Recommendations ---
+  const rightSizingData = useMemo(() => {
+    if (!cpuTableData.length) return [];
+    const cpuMap = new Map(cpuTableData.map((r) => [r["Host Name"], r]));
+    const memMap = new Map(memTableData.map((r) => [r["Host Name"], r]));
+    const hosts = Array.from(cpuMap.keys());
+    return hosts.map((h) => {
+      const c = cpuMap.get(h)!;
+      const m = memMap.get(h);
+      const cpuFcHigh = c["Forecast CPU High"];
+      const memFcHigh = m ? m["Forecast MEM High"] : 0;
+      const cpuHeadroom = provisionGoal - cpuFcHigh;
+      const memHeadroom = provisionGoal - (memFcHigh);
+      let status = "Optimal";
+      let statusColor = GREEN;
+      if (cpuHeadroom < 0 || memHeadroom < 0) { status = "Under-Provisioned"; statusColor = RED; }
+      else if (cpuHeadroom > 40 && memHeadroom > 40) { status = "Over-Provisioned"; statusColor = YELLOW; }
+      return {
+        "Host Name": h,
+        "CPU Forecast High": round(cpuFcHigh),
+        "CPU Headroom": round(cpuHeadroom),
+        "MEM Forecast High": round(memFcHigh),
+        "MEM Headroom": round(memHeadroom),
+        Status: status,
+        _statusColor: statusColor,
+      };
+    }).sort((a, b) => a["CPU Headroom"] - b["CPU Headroom"]);
+  }, [cpuTableData, memTableData, provisionGoal]);
+
+  // --- Host Group Heatmap ---
+  const heatmapData: HoneycombTileNumericData[] = useMemo(() => {
+    if (!cpuTableData.length) return [];
+    return cpuTableData.map((r) => ({
+      name: r["Host Name"],
+      value: round(r["Forecast CPU High"]),
+    }));
+  }, [cpuTableData]);
+
+  // --- Correlation Matrix (cross-resource) ---
+  const correlationMatrix = useMemo(() => {
+    if (!analytics) return null;
+    const cpuMem = computePCC(analytics.cpuArr, analytics.memArr);
+    const cpuDisk = computePCC(analytics.cpuArr, analytics.diskArr);
+    const memDisk = computePCC(analytics.memArr, analytics.diskArr);
+    return {
+      trafficCpu: analytics.cpu.pcc,
+      trafficMem: analytics.mem.pcc,
+      trafficDisk: analytics.disk.pcc,
+      cpuMem,
+      cpuDisk,
+      memDisk,
+    };
+  }, [analytics]);
+
+  // --- Trend Decomposition (simple moving average decomposition) ---
+  const trendData = useMemo(() => {
+    if (!analytics) return null;
+    const windowSize = 12;// 1 hour window at 5min intervals
+    const movingAvg = (arr: number[]) => {
+      const result: number[] = [];
+      for (let i = 0; i < arr.length; i++) {
+        const start = Math.max(0, i - Math.floor(windowSize / 2));
+        const end = Math.min(arr.length, i + Math.ceil(windowSize / 2));
+        const slice = arr.slice(start, end);
+        result.push(slice.reduce((a, b) => a + b, 0) / slice.length);
+      }
+      return result;
+    };
+    const decompose = (arr: number[]) => {
+      const trend = movingAvg(arr);
+      const residual = arr.map((v, i) => v - trend[i]);
+      const trendSlope = arr.length > 1 ? (trend[trend.length - 1] - trend[0]) / arr.length : 0;
+      const residualStd = Math.sqrt(residual.reduce((s, v) => s + v * v, 0) / residual.length);
+      return { trendSlope: round(trendSlope * 100), residualStd: round(residualStd), trendStart: round(trend[0]), trendEnd: round(trend[trend.length - 1]) };
+    };
+    return {
+      cpu: decompose(analytics.cpuArr),
+      mem: decompose(analytics.memArr),
+      disk: decompose(analytics.diskArr),
+      traffic: decompose(analytics.trafficArr),
+    };
+  }, [analytics]);
+
+  // --- Alert Rules ---
+  const addAlertRule = useCallback(() => {
+    setAlertRules((prev) => [...prev, { id: Date.now(), metric: newAlertMetric, comparator: newAlertComparator, threshold: newAlertThreshold }]);
+  }, [newAlertMetric, newAlertComparator, newAlertThreshold]);
+
+  const alertViolations = useMemo(() => {
+    if (!alertRules.length || !cpuTableData.length) return [];
+    const violations: { rule: string; host: string; actual: number }[] = [];
+    const allHosts = cpuTableData.map((r) => r["Host Name"]);
+    const cpuMap = new Map(cpuTableData.map((r) => [r["Host Name"], r]));
+    const memMap = new Map(memTableData.map((r) => [r["Host Name"], r]));
+    const diskMap = new Map(diskTableData.map((r) => [r["Host Name"], r]));
+    for (const rule of alertRules) {
+      for (const host of allHosts) {
+        const c = cpuMap.get(host);
+        const m = memMap.get(host);
+        const d = diskMap.get(host);
+        let value = 0;
+        if (rule.metric === "Forecast CPU High") value = c ? c["Forecast CPU High"] : 0;
+        else if (rule.metric === "Forecast MEM High") value = m ? m["Forecast MEM High"] : 0;
+        else if (rule.metric === "Forecast Disk High") value = d ? d["Forecast Disk Free High"] : 0;
+        else if (rule.metric === "Observed CPU High") value = c ? c["Observed CPU High"] : 0;
+        else if (rule.metric === "Observed MEM High") value = m ? m["Observed MEM High"] : 0;
+        let triggered = false;
+        if (rule.comparator === ">" && value > rule.threshold) triggered = true;
+        else if (rule.comparator === ">=" && value >= rule.threshold) triggered = true;
+        else if (rule.comparator === "<" && value < rule.threshold) triggered = true;
+        if (triggered) violations.push({ rule: `${rule.metric} ${rule.comparator} ${rule.threshold}%`, host, actual: round(value) });
+      }
+    }
+    return violations;
+  }, [alertRules, cpuTableData, memTableData, diskTableData]);
+
+  // --- Baselines ---
+  const saveBaseline = useCallback(() => {
+    if (!metrics || !baselineName.trim()) return;
+    setBaselines((prev) => [...prev, {
+      id: Date.now(), name: baselineName.trim(), timestamp: new Date().toLocaleString(),
+      cpuHigh: round(cpu.high), memHigh: round(memory.high), diskHigh: round(disk.high),
+      cpuPCC: round(cpuPCC), memPCC: round(memPCC), diskPCC: round(diskPCC),
+    }]);
+    setBaselineName("");
+  }, [baselineName, metrics, cpu.high, memory.high, disk.high, cpuPCC, memPCC, diskPCC]);
+
+  // --- Analytics Exec Summaries ---
+  const execSummaries = useMemo(() => {
+    if (!analytics || !analyticsExtras || !metrics) return null;
+    const pccDesc = (pcc: number, name: string) => {
+      if (pcc >= 0.7) return `${name} is strongly driven by traffic — when traffic increases, ${name.toLowerCase()} increases proportionally.`;
+      if (pcc >= 0.5) return `${name} has a meaningful relationship with traffic. Traffic is one of the main factors driving ${name.toLowerCase()}.`;
+      if (pcc >= 0.3) return `${name} has a moderate link to traffic. Other factors beyond traffic are also influencing ${name.toLowerCase()}.`;
+      return `${name} shows little connection to traffic. It is likely driven by factors other than traffic volume.`;
+    };
+    const r2Desc = (r2: number, name: string) => {
+      const pct = Math.round(r2 * 100);
+      if (r2 >= 0.5) return `Traffic explains ${pct}% of ${name.toLowerCase()} variability — it is the dominant factor.`;
+      if (r2 >= 0.25) return `Traffic explains ${pct}% of ${name.toLowerCase()} variability — a noticeable but not dominant factor.`;
+      return `Traffic only explains ${pct}% of ${name.toLowerCase()} variability — other factors are more important.`;
+    };
+    const elastDesc = (e: number, name: string) => {
+      if (Math.abs(e) > 2) return `${name} is highly sensitive — it changes ${round(Math.abs(e))}x faster than traffic. This is a potential bottleneck that needs attention.`;
+      if (Math.abs(e) > 1) return `${name} is amplifying traffic changes — a ${round(Math.abs(e))}x multiplier. Worth monitoring closely during traffic spikes.`;
+      if (Math.abs(e) > 0.5) return `${name} grows at roughly the same rate as traffic — this is normal and manageable.`;
+      return `${name} is relatively insensitive to traffic changes — it stays stable even when traffic fluctuates.`;
+    };
+    const lagDesc = (pcc0: number, pcc15: number, pcc30: number, pcc1h: number, name: string) => {
+      const max = Math.max(pcc0, pcc15, pcc30, pcc1h);
+      if (max === pcc0) return `${name} responds to traffic changes immediately — no significant delay.`;
+      if (max === pcc15) return `${name} reacts to traffic changes with a ~15 minute delay. Plan capacity actions accordingly.`;
+      if (max === pcc30) return `${name} has a ~30 minute lag behind traffic. Impact from traffic spikes won't show for about half an hour.`;
+      return `${name} has a ~1 hour lag behind traffic. There's a significant delay before traffic changes impact ${name.toLowerCase()}.`;
+    };
+    const distDesc = (stat: typeof analytics.cpu, cv: number, name: string) => {
+      const parts: string[] = [];
+      if (cv > 0.3) parts.push(`${name} usage is highly variable (volatile)`);
+      else parts.push(`${name} usage is relatively stable`);
+      if (Math.abs(stat.skew) > 1) parts.push(`with frequent extreme spikes`);
+      else if (Math.abs(stat.skew) > 0.5) parts.push(`with occasional spikes above average`);
+      if (stat.p99 >= 90) parts.push(`. ⚠️ The top 1% of readings hit ${round(stat.p99)}% — dangerously close to full capacity`);
+      else if (stat.p95 >= 80) parts.push(`. The top 5% of readings reach ${round(stat.p95)}% — approaching the warning zone`);
+      return parts.join("") + ".";
+    };
+    return {
+      correlation: {
+        cpu: pccDesc(analytics.cpu.pcc, "CPU"),
+        mem: pccDesc(analytics.mem.pcc, "Memory"),
+        disk: pccDesc(analytics.disk.pcc, "Disk"),
+      },
+      rSquared: {
+        cpu: r2Desc(analyticsExtras.cpu.rSquared, "CPU"),
+        mem: r2Desc(analyticsExtras.mem.rSquared, "Memory"),
+        disk: r2Desc(analyticsExtras.disk.rSquared, "Disk"),
+      },
+      elasticity: {
+        cpu: elastDesc(analyticsExtras.cpu.elasticity, "CPU"),
+        mem: elastDesc(analyticsExtras.mem.elasticity, "Memory"),
+        disk: elastDesc(analyticsExtras.disk.elasticity, "Disk"),
+      },
+      lag: {
+        cpu: lagDesc(analytics.cpu.pcc, analytics.cpu.lagPCC15m, analytics.cpu.lagPCC30m, analytics.cpu.lagPCC1h, "CPU"),
+        mem: lagDesc(analytics.mem.pcc, analytics.mem.lagPCC15m, analytics.mem.lagPCC30m, analytics.mem.lagPCC1h, "Memory"),
+        disk: lagDesc(analytics.disk.pcc, analytics.disk.lagPCC15m, analytics.disk.lagPCC30m, analytics.disk.lagPCC1h, "Disk"),
+      },
+      distribution: {
+        traffic: distDesc(analytics.traffic as any, analyticsExtras.traffic.cv, "Traffic"),
+        cpu: distDesc(analytics.cpu, analyticsExtras.cpu.cv, "CPU"),
+        mem: distDesc(analytics.mem, analyticsExtras.mem.cv, "Memory"),
+        disk: distDesc(analytics.disk, analyticsExtras.disk.cv, "Disk"),
+      },
+    };
+  }, [analytics, analyticsExtras, metrics]);
 
   const cpuColumns = useMemo(() => [
     { id: "hostName", header: "Host Name", accessor: "Host Name" },
@@ -879,93 +1206,591 @@ export const TrafficAnalyzer = () => {
                 <SectionHeader title="Correlation Analysis — Traffic vs Resources" />
                 <Heading level={6}>Pearson Correlation Coefficient (PCC)</Heading>
                 <Flex gap={8} flexWrap="wrap">
-                  <MetricCard label="CPU PCC" value={analytics.cpu.pcc} color={analytics.cpu.pcc >= 0.5 ? "#00D26A" : analytics.cpu.pcc >= 0.3 ? "#FCD53F" : "#F8312F"} bordered style={{ flex: 1, maxWidth: "none" }} />
-                  <MetricCard label="Memory PCC" value={analytics.mem.pcc} color={analytics.mem.pcc >= 0.5 ? "#00D26A" : analytics.mem.pcc >= 0.3 ? "#FCD53F" : "#F8312F"} bordered style={{ flex: 1, maxWidth: "none" }} />
-                  <MetricCard label="Disk PCC" value={analytics.disk.pcc} color={analytics.disk.pcc >= 0.5 ? "#00D26A" : analytics.disk.pcc >= 0.3 ? "#FCD53F" : "#F8312F"} bordered style={{ flex: 1, maxWidth: "none" }} />
+                  <MetricCard label="CPU PCC" value={analytics.cpu.pcc} color={analytics.cpu.pcc >= 0.5 ? GREEN : analytics.cpu.pcc >= 0.3 ? YELLOW : RED} bordered style={{ flex: 1, maxWidth: "none" }} />
+                  <MetricCard label="Memory PCC" value={analytics.mem.pcc} color={analytics.mem.pcc >= 0.5 ? GREEN : analytics.mem.pcc >= 0.3 ? YELLOW : RED} bordered style={{ flex: 1, maxWidth: "none" }} />
+                  <MetricCard label="Disk PCC" value={analytics.disk.pcc} color={analytics.disk.pcc >= 0.5 ? GREEN : analytics.disk.pcc >= 0.3 ? YELLOW : RED} bordered style={{ flex: 1, maxWidth: "none" }} />
                 </Flex>
+                {execSummaries && (
+                  <InsightBox>
+                    <strong>What this means:</strong> PCC measures how closely each resource moves with traffic (0 = no relationship, 1 = moves in lockstep).
+                    <ul style={{ margin: "6px 0 0 0", paddingLeft: 20 }}>
+                      <li>{execSummaries.correlation.cpu}</li>
+                      <li>{execSummaries.correlation.mem}</li>
+                      <li>{execSummaries.correlation.disk}</li>
+                    </ul>
+                  </InsightBox>
+                )}
 
                 <Heading level={6}>R² — Variance Explained by Traffic</Heading>
                 <Flex gap={8} flexWrap="wrap">
-                  <MetricCard label="CPU R²" value={analyticsExtras.cpu.rSquared} color={analyticsExtras.cpu.rSquared >= 0.5 ? "#00D26A" : analyticsExtras.cpu.rSquared >= 0.25 ? "#FCD53F" : "#F8312F"} bordered style={{ flex: 1, maxWidth: "none" }} />
-                  <MetricCard label="Memory R²" value={analyticsExtras.mem.rSquared} color={analyticsExtras.mem.rSquared >= 0.5 ? "#00D26A" : analyticsExtras.mem.rSquared >= 0.25 ? "#FCD53F" : "#F8312F"} bordered style={{ flex: 1, maxWidth: "none" }} />
-                  <MetricCard label="Disk R²" value={analyticsExtras.disk.rSquared} color={analyticsExtras.disk.rSquared >= 0.5 ? "#00D26A" : analyticsExtras.disk.rSquared >= 0.25 ? "#FCD53F" : "#F8312F"} bordered style={{ flex: 1, maxWidth: "none" }} />
+                  <MetricCard label="CPU R²" value={analyticsExtras.cpu.rSquared} color={analyticsExtras.cpu.rSquared >= 0.5 ? GREEN : analyticsExtras.cpu.rSquared >= 0.25 ? YELLOW : RED} bordered style={{ flex: 1, maxWidth: "none" }} />
+                  <MetricCard label="Memory R²" value={analyticsExtras.mem.rSquared} color={analyticsExtras.mem.rSquared >= 0.5 ? GREEN : analyticsExtras.mem.rSquared >= 0.25 ? YELLOW : RED} bordered style={{ flex: 1, maxWidth: "none" }} />
+                  <MetricCard label="Disk R²" value={analyticsExtras.disk.rSquared} color={analyticsExtras.disk.rSquared >= 0.5 ? GREEN : analyticsExtras.disk.rSquared >= 0.25 ? YELLOW : RED} bordered style={{ flex: 1, maxWidth: "none" }} />
                 </Flex>
+                {execSummaries && (
+                  <InsightBox>
+                    <strong>What this means:</strong> R² tells you what percentage of a resource's ups and downs can be attributed to traffic.
+                    <ul style={{ margin: "6px 0 0 0", paddingLeft: 20 }}>
+                      <li>{execSummaries.rSquared.cpu}</li>
+                      <li>{execSummaries.rSquared.mem}</li>
+                      <li>{execSummaries.rSquared.disk}</li>
+                    </ul>
+                  </InsightBox>
+                )}
 
-                <Heading level={6}>Elasticity — Resource Sensitivity to Traffic (% Change Ratio)</Heading>
+                <Heading level={6}>Elasticity — Resource Sensitivity to Traffic</Heading>
                 <Flex gap={8} flexWrap="wrap">
-                  <MetricCard label="CPU Elasticity" value={analyticsExtras.cpu.elasticity} color={Math.abs(analyticsExtras.cpu.elasticity) > 1 ? "#F8312F" : "#00D26A"} bordered style={{ flex: 1, maxWidth: "none" }} />
-                  <MetricCard label="Memory Elasticity" value={analyticsExtras.mem.elasticity} color={Math.abs(analyticsExtras.mem.elasticity) > 1 ? "#F8312F" : "#00D26A"} bordered style={{ flex: 1, maxWidth: "none" }} />
-                  <MetricCard label="Disk Elasticity" value={analyticsExtras.disk.elasticity} color={Math.abs(analyticsExtras.disk.elasticity) > 1 ? "#F8312F" : "#00D26A"} bordered style={{ flex: 1, maxWidth: "none" }} />
+                  <MetricCard label="CPU Elasticity" value={analyticsExtras.cpu.elasticity} color={Math.abs(analyticsExtras.cpu.elasticity) > 1 ? RED : GREEN} bordered style={{ flex: 1, maxWidth: "none" }} />
+                  <MetricCard label="Memory Elasticity" value={analyticsExtras.mem.elasticity} color={Math.abs(analyticsExtras.mem.elasticity) > 1 ? RED : GREEN} bordered style={{ flex: 1, maxWidth: "none" }} />
+                  <MetricCard label="Disk Elasticity" value={analyticsExtras.disk.elasticity} color={Math.abs(analyticsExtras.disk.elasticity) > 1 ? RED : GREEN} bordered style={{ flex: 1, maxWidth: "none" }} />
                 </Flex>
+                {execSummaries && (
+                  <InsightBox>
+                    <strong>What this means:</strong> Elasticity shows how much a resource amplifies traffic changes. A value of 2× means the resource grows twice as fast as traffic.
+                    <ul style={{ margin: "6px 0 0 0", paddingLeft: 20 }}>
+                      <li>{execSummaries.elasticity.cpu}</li>
+                      <li>{execSummaries.elasticity.mem}</li>
+                      <li>{execSummaries.elasticity.disk}</li>
+                    </ul>
+                  </InsightBox>
+                )}
 
                 {/* Lag Correlation */}
                 <SectionHeader title="Lag Correlation — Delayed Traffic Impact" />
                 <Heading level={6}>CPU — PCC at Time Offsets</Heading>
                 <Flex gap={8} flexWrap="wrap">
-                  <MetricCard label="No Lag (0m)" value={analytics.cpu.pcc} color="#134FC9" bordered style={{ flex: 1, maxWidth: "none" }} />
+                  <MetricCard label="No Lag (0m)" value={analytics.cpu.pcc} color={BLUE} bordered style={{ flex: 1, maxWidth: "none" }} />
                   <MetricCard label="Lag +15min" value={analytics.cpu.lagPCC15m} color="#4589FF" bordered style={{ flex: 1, maxWidth: "none" }} />
                   <MetricCard label="Lag +30min" value={analytics.cpu.lagPCC30m} color="#78A9FF" bordered style={{ flex: 1, maxWidth: "none" }} />
                   <MetricCard label="Lag +1h" value={analytics.cpu.lagPCC1h} color="#A6C8FF" bordered style={{ flex: 1, maxWidth: "none" }} />
                 </Flex>
                 <Heading level={6}>Memory — PCC at Time Offsets</Heading>
                 <Flex gap={8} flexWrap="wrap">
-                  <MetricCard label="No Lag (0m)" value={analytics.mem.pcc} color="#134FC9" bordered style={{ flex: 1, maxWidth: "none" }} />
+                  <MetricCard label="No Lag (0m)" value={analytics.mem.pcc} color={BLUE} bordered style={{ flex: 1, maxWidth: "none" }} />
                   <MetricCard label="Lag +15min" value={analytics.mem.lagPCC15m} color="#4589FF" bordered style={{ flex: 1, maxWidth: "none" }} />
                   <MetricCard label="Lag +30min" value={analytics.mem.lagPCC30m} color="#78A9FF" bordered style={{ flex: 1, maxWidth: "none" }} />
                   <MetricCard label="Lag +1h" value={analytics.mem.lagPCC1h} color="#A6C8FF" bordered style={{ flex: 1, maxWidth: "none" }} />
                 </Flex>
                 <Heading level={6}>Disk — PCC at Time Offsets</Heading>
                 <Flex gap={8} flexWrap="wrap">
-                  <MetricCard label="No Lag (0m)" value={analytics.disk.pcc} color="#134FC9" bordered style={{ flex: 1, maxWidth: "none" }} />
+                  <MetricCard label="No Lag (0m)" value={analytics.disk.pcc} color={BLUE} bordered style={{ flex: 1, maxWidth: "none" }} />
                   <MetricCard label="Lag +15min" value={analytics.disk.lagPCC15m} color="#4589FF" bordered style={{ flex: 1, maxWidth: "none" }} />
                   <MetricCard label="Lag +30min" value={analytics.disk.lagPCC30m} color="#78A9FF" bordered style={{ flex: 1, maxWidth: "none" }} />
                   <MetricCard label="Lag +1h" value={analytics.disk.lagPCC1h} color="#A6C8FF" bordered style={{ flex: 1, maxWidth: "none" }} />
                 </Flex>
+                {execSummaries && (
+                  <InsightBox>
+                    <strong>What this means:</strong> Lag correlation tells you how quickly each resource reacts to traffic changes. Sometimes impact isn't immediate — it shows up minutes or hours later.
+                    <ul style={{ margin: "6px 0 0 0", paddingLeft: 20 }}>
+                      <li>{execSummaries.lag.cpu}</li>
+                      <li>{execSummaries.lag.mem}</li>
+                      <li>{execSummaries.lag.disk}</li>
+                    </ul>
+                  </InsightBox>
+                )}
 
                 {/* Distribution */}
                 <SectionHeader title="Distribution — Percentiles & Variability" />
                 <Heading level={6}>Traffic</Heading>
                 <Flex gap={8} flexWrap="wrap">
-                  <MetricCard label="Min" value={analytics.traffic.min} color="#134FC9" bordered style={{ flex: 1, maxWidth: "none" }} />
-                  <MetricCard label="P95" value={analytics.traffic.p95} color="#134FC9" bordered style={{ flex: 1, maxWidth: "none" }} />
-                  <MetricCard label="P99" value={analytics.traffic.p99} color="#134FC9" bordered style={{ flex: 1, maxWidth: "none" }} />
-                  <MetricCard label="Max" value={analytics.traffic.max} color="#134FC9" bordered style={{ flex: 1, maxWidth: "none" }} />
-                  <MetricCard label="Std Dev" value={analytics.traffic.stdDev} color="#134FC9" bordered style={{ flex: 1, maxWidth: "none" }} />
-                  <MetricCard label="CV" value={analyticsExtras.traffic.cv} color={analyticsExtras.traffic.cv > 0.3 ? "#F8312F" : "#00D26A"} bordered style={{ flex: 1, maxWidth: "none" }} />
-                  <MetricCard label="Skewness" value={analytics.traffic.skew} color={Math.abs(analytics.traffic.skew) > 1 ? "#F8312F" : Math.abs(analytics.traffic.skew) > 0.5 ? "#FCD53F" : "#00D26A"} bordered style={{ flex: 1, maxWidth: "none" }} />
+                  <MetricCard label="Min" value={analytics.traffic.min} color={BLUE} bordered style={{ flex: 1, maxWidth: "none" }} />
+                  <MetricCard label="P95" value={analytics.traffic.p95} color={BLUE} bordered style={{ flex: 1, maxWidth: "none" }} />
+                  <MetricCard label="P99" value={analytics.traffic.p99} color={BLUE} bordered style={{ flex: 1, maxWidth: "none" }} />
+                  <MetricCard label="Max" value={analytics.traffic.max} color={BLUE} bordered style={{ flex: 1, maxWidth: "none" }} />
+                  <MetricCard label="Std Dev" value={analytics.traffic.stdDev} color={BLUE} bordered style={{ flex: 1, maxWidth: "none" }} />
+                  <MetricCard label="CV" value={analyticsExtras.traffic.cv} color={analyticsExtras.traffic.cv > 0.3 ? RED : GREEN} bordered style={{ flex: 1, maxWidth: "none" }} />
+                  <MetricCard label="Skewness" value={analytics.traffic.skew} color={Math.abs(analytics.traffic.skew) > 1 ? RED : Math.abs(analytics.traffic.skew) > 0.5 ? YELLOW : GREEN} bordered style={{ flex: 1, maxWidth: "none" }} />
                 </Flex>
+                {execSummaries && <InsightBox>{execSummaries.distribution.traffic}</InsightBox>}
                 <Heading level={6}>CPU</Heading>
                 <Flex gap={8} flexWrap="wrap">
-                  <MetricCard label="Min" value={analytics.cpu.min} unit="%" color="#134FC9" bordered style={{ flex: 1, maxWidth: "none" }} />
-                  <MetricCard label="P95" value={analytics.cpu.p95} unit="%" color={analytics.cpu.p95 >= 90 ? "#F8312F" : analytics.cpu.p95 >= 80 ? "#FCD53F" : "#00D26A"} bordered style={{ flex: 1, maxWidth: "none" }} />
-                  <MetricCard label="P99" value={analytics.cpu.p99} unit="%" color={analytics.cpu.p99 >= 90 ? "#F8312F" : analytics.cpu.p99 >= 80 ? "#FCD53F" : "#00D26A"} bordered style={{ flex: 1, maxWidth: "none" }} />
-                  <MetricCard label="Max" value={analytics.cpu.max} unit="%" color={analytics.cpu.max >= 90 ? "#F8312F" : analytics.cpu.max >= 80 ? "#FCD53F" : "#00D26A"} bordered style={{ flex: 1, maxWidth: "none" }} />
-                  <MetricCard label="Std Dev" value={analytics.cpu.stdDev} color="#134FC9" bordered style={{ flex: 1, maxWidth: "none" }} />
-                  <MetricCard label="CV" value={analyticsExtras.cpu.cv} color={analyticsExtras.cpu.cv > 0.3 ? "#F8312F" : "#00D26A"} bordered style={{ flex: 1, maxWidth: "none" }} />
-                  <MetricCard label="Skewness" value={analytics.cpu.skew} color={Math.abs(analytics.cpu.skew) > 1 ? "#F8312F" : Math.abs(analytics.cpu.skew) > 0.5 ? "#FCD53F" : "#00D26A"} bordered style={{ flex: 1, maxWidth: "none" }} />
+                  <MetricCard label="Min" value={analytics.cpu.min} unit="%" color={BLUE} bordered style={{ flex: 1, maxWidth: "none" }} />
+                  <MetricCard label="P95" value={analytics.cpu.p95} unit="%" color={analytics.cpu.p95 >= 90 ? RED : analytics.cpu.p95 >= 80 ? YELLOW : GREEN} bordered style={{ flex: 1, maxWidth: "none" }} />
+                  <MetricCard label="P99" value={analytics.cpu.p99} unit="%" color={analytics.cpu.p99 >= 90 ? RED : analytics.cpu.p99 >= 80 ? YELLOW : GREEN} bordered style={{ flex: 1, maxWidth: "none" }} />
+                  <MetricCard label="Max" value={analytics.cpu.max} unit="%" color={analytics.cpu.max >= 90 ? RED : analytics.cpu.max >= 80 ? YELLOW : GREEN} bordered style={{ flex: 1, maxWidth: "none" }} />
+                  <MetricCard label="Std Dev" value={analytics.cpu.stdDev} color={BLUE} bordered style={{ flex: 1, maxWidth: "none" }} />
+                  <MetricCard label="CV" value={analyticsExtras.cpu.cv} color={analyticsExtras.cpu.cv > 0.3 ? RED : GREEN} bordered style={{ flex: 1, maxWidth: "none" }} />
+                  <MetricCard label="Skewness" value={analytics.cpu.skew} color={Math.abs(analytics.cpu.skew) > 1 ? RED : Math.abs(analytics.cpu.skew) > 0.5 ? YELLOW : GREEN} bordered style={{ flex: 1, maxWidth: "none" }} />
                 </Flex>
+                {execSummaries && <InsightBox>{execSummaries.distribution.cpu}</InsightBox>}
                 <Heading level={6}>Memory</Heading>
                 <Flex gap={8} flexWrap="wrap">
-                  <MetricCard label="Min" value={analytics.mem.min} unit="%" color="#134FC9" bordered style={{ flex: 1, maxWidth: "none" }} />
-                  <MetricCard label="P95" value={analytics.mem.p95} unit="%" color={analytics.mem.p95 >= 90 ? "#F8312F" : analytics.mem.p95 >= 80 ? "#FCD53F" : "#00D26A"} bordered style={{ flex: 1, maxWidth: "none" }} />
-                  <MetricCard label="P99" value={analytics.mem.p99} unit="%" color={analytics.mem.p99 >= 90 ? "#F8312F" : analytics.mem.p99 >= 80 ? "#FCD53F" : "#00D26A"} bordered style={{ flex: 1, maxWidth: "none" }} />
-                  <MetricCard label="Max" value={analytics.mem.max} unit="%" color={analytics.mem.max >= 90 ? "#F8312F" : analytics.mem.max >= 80 ? "#FCD53F" : "#00D26A"} bordered style={{ flex: 1, maxWidth: "none" }} />
-                  <MetricCard label="Std Dev" value={analytics.mem.stdDev} color="#134FC9" bordered style={{ flex: 1, maxWidth: "none" }} />
-                  <MetricCard label="CV" value={analyticsExtras.mem.cv} color={analyticsExtras.mem.cv > 0.3 ? "#F8312F" : "#00D26A"} bordered style={{ flex: 1, maxWidth: "none" }} />
-                  <MetricCard label="Skewness" value={analytics.mem.skew} color={Math.abs(analytics.mem.skew) > 1 ? "#F8312F" : Math.abs(analytics.mem.skew) > 0.5 ? "#FCD53F" : "#00D26A"} bordered style={{ flex: 1, maxWidth: "none" }} />
+                  <MetricCard label="Min" value={analytics.mem.min} unit="%" color={BLUE} bordered style={{ flex: 1, maxWidth: "none" }} />
+                  <MetricCard label="P95" value={analytics.mem.p95} unit="%" color={analytics.mem.p95 >= 90 ? RED : analytics.mem.p95 >= 80 ? YELLOW : GREEN} bordered style={{ flex: 1, maxWidth: "none" }} />
+                  <MetricCard label="P99" value={analytics.mem.p99} unit="%" color={analytics.mem.p99 >= 90 ? RED : analytics.mem.p99 >= 80 ? YELLOW : GREEN} bordered style={{ flex: 1, maxWidth: "none" }} />
+                  <MetricCard label="Max" value={analytics.mem.max} unit="%" color={analytics.mem.max >= 90 ? RED : analytics.mem.max >= 80 ? YELLOW : GREEN} bordered style={{ flex: 1, maxWidth: "none" }} />
+                  <MetricCard label="Std Dev" value={analytics.mem.stdDev} color={BLUE} bordered style={{ flex: 1, maxWidth: "none" }} />
+                  <MetricCard label="CV" value={analyticsExtras.mem.cv} color={analyticsExtras.mem.cv > 0.3 ? RED : GREEN} bordered style={{ flex: 1, maxWidth: "none" }} />
+                  <MetricCard label="Skewness" value={analytics.mem.skew} color={Math.abs(analytics.mem.skew) > 1 ? RED : Math.abs(analytics.mem.skew) > 0.5 ? YELLOW : GREEN} bordered style={{ flex: 1, maxWidth: "none" }} />
                 </Flex>
+                {execSummaries && <InsightBox>{execSummaries.distribution.mem}</InsightBox>}
                 <Heading level={6}>Disk Free</Heading>
                 <Flex gap={8} flexWrap="wrap">
-                  <MetricCard label="Min" value={analytics.disk.min} unit="%" color="#134FC9" bordered style={{ flex: 1, maxWidth: "none" }} />
-                  <MetricCard label="P95" value={analytics.disk.p95} unit="%" color={analytics.disk.p95 >= 90 ? "#F8312F" : analytics.disk.p95 >= 80 ? "#FCD53F" : "#00D26A"} bordered style={{ flex: 1, maxWidth: "none" }} />
-                  <MetricCard label="P99" value={analytics.disk.p99} unit="%" color={analytics.disk.p99 >= 90 ? "#F8312F" : analytics.disk.p99 >= 80 ? "#FCD53F" : "#00D26A"} bordered style={{ flex: 1, maxWidth: "none" }} />
-                  <MetricCard label="Max" value={analytics.disk.max} unit="%" color={analytics.disk.max >= 90 ? "#F8312F" : analytics.disk.max >= 80 ? "#FCD53F" : "#00D26A"} bordered style={{ flex: 1, maxWidth: "none" }} />
-                  <MetricCard label="Std Dev" value={analytics.disk.stdDev} color="#134FC9" bordered style={{ flex: 1, maxWidth: "none" }} />
-                  <MetricCard label="CV" value={analyticsExtras.disk.cv} color={analyticsExtras.disk.cv > 0.3 ? "#F8312F" : "#00D26A"} bordered style={{ flex: 1, maxWidth: "none" }} />
-                  <MetricCard label="Skewness" value={analytics.disk.skew} color={Math.abs(analytics.disk.skew) > 1 ? "#F8312F" : Math.abs(analytics.disk.skew) > 0.5 ? "#FCD53F" : "#00D26A"} bordered style={{ flex: 1, maxWidth: "none" }} />
+                  <MetricCard label="Min" value={analytics.disk.min} unit="%" color={BLUE} bordered style={{ flex: 1, maxWidth: "none" }} />
+                  <MetricCard label="P95" value={analytics.disk.p95} unit="%" color={analytics.disk.p95 >= 90 ? RED : analytics.disk.p95 >= 80 ? YELLOW : GREEN} bordered style={{ flex: 1, maxWidth: "none" }} />
+                  <MetricCard label="P99" value={analytics.disk.p99} unit="%" color={analytics.disk.p99 >= 90 ? RED : analytics.disk.p99 >= 80 ? YELLOW : GREEN} bordered style={{ flex: 1, maxWidth: "none" }} />
+                  <MetricCard label="Max" value={analytics.disk.max} unit="%" color={analytics.disk.max >= 90 ? RED : analytics.disk.max >= 80 ? YELLOW : GREEN} bordered style={{ flex: 1, maxWidth: "none" }} />
+                  <MetricCard label="Std Dev" value={analytics.disk.stdDev} color={BLUE} bordered style={{ flex: 1, maxWidth: "none" }} />
+                  <MetricCard label="CV" value={analyticsExtras.disk.cv} color={analyticsExtras.disk.cv > 0.3 ? RED : GREEN} bordered style={{ flex: 1, maxWidth: "none" }} />
+                  <MetricCard label="Skewness" value={analytics.disk.skew} color={Math.abs(analytics.disk.skew) > 1 ? RED : Math.abs(analytics.disk.skew) > 0.5 ? YELLOW : GREEN} bordered style={{ flex: 1, maxWidth: "none" }} />
                 </Flex>
+                {execSummaries && <InsightBox>{execSummaries.distribution.disk}</InsightBox>}
                 <SectionHeader title={"\u00A0"} />
               </>
+            )}
+          </Flex>
+        </Tab>
+
+        {/* ═══════════════════════ SATURATION COUNTDOWN ═══════════════════════ */}
+        <Tab title="Saturation Countdown">
+          <Flex flexDirection="column" gap={16} paddingTop={16}>
+            <SectionHeader title={`Days Until Resources Hit ${provisionGoal}% Capacity`} />
+            <InsightBox>
+              <strong>How to read this:</strong> Based on the current growth trend over the last {timeframeDays} days, this estimates how many days until each resource reaches your {provisionGoal}% provisioning goal. Hosts appearing at the top with low day counts need attention soonest. "—" means the resource is not trending toward saturation.
+            </InsightBox>
+            {!saturationData.length ? (
+              <Flex justifyContent="center" padding={32}><Strong>No host data available</Strong></Flex>
+            ) : (
+              <>
+                <Flex gap={16} flexWrap="wrap">
+                  <div style={{ flex: "1 1 200px", border: TILE_BORDER, borderRadius: 10, padding: 16, background: TILE_BG, boxShadow: TILE_SHADOW, textAlign: "center" }}>
+                    <div style={{ fontSize: 12, color: "#8899bb" }}>Hosts At Risk (≤30d)</div>
+                    <div style={{ fontSize: 32, fontWeight: 700, color: RED }}>{saturationData.filter((r) => typeof r._minDays === "number" && r._minDays <= 30).length}</div>
+                  </div>
+                  <div style={{ flex: "1 1 200px", border: TILE_BORDER, borderRadius: 10, padding: 16, background: TILE_BG, boxShadow: TILE_SHADOW, textAlign: "center" }}>
+                    <div style={{ fontSize: 12, color: "#8899bb" }}>Warning (31–90d)</div>
+                    <div style={{ fontSize: 32, fontWeight: 700, color: YELLOW }}>{saturationData.filter((r) => typeof r._minDays === "number" && r._minDays > 30 && r._minDays <= 90).length}</div>
+                  </div>
+                  <div style={{ flex: "1 1 200px", border: TILE_BORDER, borderRadius: 10, padding: 16, background: TILE_BG, boxShadow: TILE_SHADOW, textAlign: "center" }}>
+                    <div style={{ fontSize: 12, color: "#8899bb" }}>Healthy (90+d or Stable)</div>
+                    <div style={{ fontSize: 32, fontWeight: 700, color: GREEN }}>{saturationData.filter((r) => r._minDays === Infinity || (typeof r._minDays === "number" && r._minDays > 90)).length}</div>
+                  </div>
+                </Flex>
+                <DataTable
+                  data={saturationData.map(({ _minDays, ...rest }) => rest)}
+                  columns={[
+                    { id: "host", header: "Host Name", accessor: "Host Name" },
+                    { id: "cpuCurr", header: "CPU Current (%)", accessor: "CPU Current (%)", columnType: "number" as const, thresholds: resourceThresholds("CPU Current (%)") },
+                    { id: "cpuDays", header: "CPU Days to Sat.", accessor: "CPU Days to Saturation" },
+                    { id: "memCurr", header: "MEM Current (%)", accessor: "MEM Current (%)", columnType: "number" as const, thresholds: resourceThresholds("MEM Current (%)") },
+                    { id: "memDays", header: "MEM Days to Sat.", accessor: "MEM Days to Saturation" },
+                    { id: "diskCurr", header: "Disk Current (%)", accessor: "Disk Current (%)", columnType: "number" as const, thresholds: resourceThresholds("Disk Current (%)") },
+                    { id: "diskDays", header: "Disk Days to Sat.", accessor: "Disk Days to Saturation" },
+                    { id: "earliest", header: "Earliest Saturation", accessor: "Earliest Saturation" },
+                  ]}
+                  sortable resizable
+                >
+                  <DataTable.Pagination defaultPageSize={15} />
+                </DataTable>
+              </>
+            )}
+          </Flex>
+        </Tab>
+
+        {/* ═══════════════════════ WHAT-IF SCENARIOS ═══════════════════════ */}
+        <Tab title="What-If Scenarios">
+          <Flex flexDirection="column" gap={16} paddingTop={16}>
+            <SectionHeader title="Compare Multiple Traffic Scenarios Side-by-Side" />
+            <InsightBox>
+              <strong>How to use:</strong> Define different traffic growth scenarios (e.g., "Holiday Peak" at 300%, "Normal Growth" at 110%) and compare their impact on all resources simultaneously. This helps you plan for best-case, expected, and worst-case outcomes.
+            </InsightBox>
+            <Flex gap={8} alignItems="flex-end" flexWrap="wrap">
+              <Flex flexDirection="column" gap={4} style={{ flex: "1 1 200px" }}>
+                <Strong>Scenario Name</Strong>
+                <input value={newScenarioName} onChange={(e) => setNewScenarioName(e.target.value)} placeholder="e.g. Holiday Peak" style={{ padding: "6px 12px", borderRadius: 6, border: "1px solid rgba(99,130,191,0.3)", background: "rgba(30,35,55,0.7)", color: "#d0d4e0", fontSize: 13 }} />
+              </Flex>
+              <Flex flexDirection="column" gap={4} style={{ flex: "0 0 160px" }}>
+                <Strong>Traffic %</Strong>
+                <NumberInput value={newScenarioPercent} onChange={(val) => setNewScenarioPercent(val ?? 100)} min={0} max={5000} />
+              </Flex>
+              <Button variant="emphasized" onClick={addScenario}>Add Scenario</Button>
+            </Flex>
+            {scenarioResults.length > 0 && (
+              <DataTable
+                data={scenarioResults}
+                columns={[
+                  { id: "name", header: "Scenario", accessor: "Scenario" },
+                  { id: "traffic", header: "Traffic %", accessor: "Traffic %", columnType: "number" as const },
+                  { id: "cpuH", header: "CPU High", accessor: "CPU High", columnType: "number" as const, thresholds: resourceThresholds("CPU High") },
+                  { id: "cpuP", header: "CPU Prov.", accessor: "CPU Prov.", columnType: "number" as const, thresholds: PROVISIONING_THRESHOLDS },
+                  { id: "memH", header: "MEM High", accessor: "MEM High", columnType: "number" as const, thresholds: resourceThresholds("MEM High") },
+                  { id: "memP", header: "MEM Prov.", accessor: "MEM Prov.", columnType: "number" as const, thresholds: PROVISIONING_THRESHOLDS },
+                  { id: "diskH", header: "Disk High", accessor: "Disk High", columnType: "number" as const, thresholds: resourceThresholds("Disk High") },
+                  { id: "diskP", header: "Disk Prov.", accessor: "Disk Prov.", columnType: "number" as const, thresholds: PROVISIONING_THRESHOLDS },
+                ]}
+                sortable resizable
+              />
+            )}
+            <Flex gap={8} flexWrap="wrap">
+              {scenarios.map((s) => (
+                <Button key={s.id} variant="default" onClick={() => setScenarios((prev) => prev.filter((p) => p.id !== s.id))}>
+                  Remove "{s.name}"
+                </Button>
+              ))}
+            </Flex>
+          </Flex>
+        </Tab>
+
+        {/* ═══════════════════════ RIGHT-SIZING ═══════════════════════ */}
+        <Tab title="Right-Sizing">
+          <Flex flexDirection="column" gap={16} paddingTop={16}>
+            <SectionHeader title="Right-Sizing Recommendations" />
+            <InsightBox>
+              <strong>How to read this:</strong> Compares each host's forecasted peak usage against your {provisionGoal}% provisioning goal.
+              <ul style={{ margin: "6px 0 0 0", paddingLeft: 20 }}>
+                <li><span style={{ color: RED }}>■ Under-Provisioned</span> — Forecasted usage exceeds the goal. Needs more resources or load balancing.</li>
+                <li><span style={{ color: YELLOW }}>■ Over-Provisioned</span> — Headroom of 40%+ on both CPU & Memory. Consider downsizing to save costs.</li>
+                <li><span style={{ color: GREEN }}>■ Optimal</span> — Headroom is within a healthy range.</li>
+              </ul>
+            </InsightBox>
+            {!rightSizingData.length ? (
+              <Flex justifyContent="center" padding={32}><Strong>No host data available</Strong></Flex>
+            ) : (
+              <>
+                <Flex gap={16} flexWrap="wrap">
+                  <div style={{ flex: "1 1 200px", border: TILE_BORDER, borderRadius: 10, padding: 16, background: TILE_BG, boxShadow: TILE_SHADOW, textAlign: "center" }}>
+                    <div style={{ fontSize: 12, color: "#8899bb" }}>Under-Provisioned</div>
+                    <div style={{ fontSize: 32, fontWeight: 700, color: RED }}>{rightSizingData.filter((r) => r.Status === "Under-Provisioned").length}</div>
+                  </div>
+                  <div style={{ flex: "1 1 200px", border: TILE_BORDER, borderRadius: 10, padding: 16, background: TILE_BG, boxShadow: TILE_SHADOW, textAlign: "center" }}>
+                    <div style={{ fontSize: 12, color: "#8899bb" }}>Over-Provisioned</div>
+                    <div style={{ fontSize: 32, fontWeight: 700, color: YELLOW }}>{rightSizingData.filter((r) => r.Status === "Over-Provisioned").length}</div>
+                  </div>
+                  <div style={{ flex: "1 1 200px", border: TILE_BORDER, borderRadius: 10, padding: 16, background: TILE_BG, boxShadow: TILE_SHADOW, textAlign: "center" }}>
+                    <div style={{ fontSize: 12, color: "#8899bb" }}>Optimal</div>
+                    <div style={{ fontSize: 32, fontWeight: 700, color: GREEN }}>{rightSizingData.filter((r) => r.Status === "Optimal").length}</div>
+                  </div>
+                </Flex>
+                <DataTable
+                  data={rightSizingData.map(({ _statusColor, ...rest }) => rest)}
+                  columns={[
+                    { id: "host", header: "Host Name", accessor: "Host Name" },
+                    { id: "cpuFc", header: "CPU Forecast High", accessor: "CPU Forecast High", columnType: "number" as const, thresholds: resourceThresholds("CPU Forecast High") },
+                    { id: "cpuH", header: "CPU Headroom", accessor: "CPU Headroom", columnType: "number" as const, thresholds: PROVISIONING_THRESHOLDS },
+                    { id: "memFc", header: "MEM Forecast High", accessor: "MEM Forecast High", columnType: "number" as const, thresholds: resourceThresholds("MEM Forecast High") },
+                    { id: "memH", header: "MEM Headroom", accessor: "MEM Headroom", columnType: "number" as const, thresholds: PROVISIONING_THRESHOLDS },
+                    { id: "status", header: "Status", accessor: "Status",
+                      cell: ({ value }: { value: string }) => (
+                        <span style={{ fontWeight: 700, color: value === "Under-Provisioned" ? RED : value === "Over-Provisioned" ? YELLOW : GREEN }}>{value}</span>
+                      ) },
+                  ]}
+                  sortable resizable
+                >
+                  <DataTable.Pagination defaultPageSize={15} />
+                </DataTable>
+              </>
+            )}
+          </Flex>
+        </Tab>
+
+        {/* ═══════════════════════ HOST GROUP HEATMAP ═══════════════════════ */}
+        <Tab title="Host Heatmap">
+          <Flex flexDirection="column" gap={16} paddingTop={16}>
+            <SectionHeader title="Host Capacity Heatmap — Forecasted CPU High" />
+            <InsightBox>
+              <strong>How to read this:</strong> Each hexagon represents one host. The color shows forecasted peak CPU usage:
+              <span style={{ color: GREEN }}> ■ &lt;80%</span> (healthy),
+              <span style={{ color: YELLOW }}> ■ 80–90%</span> (warning),
+              <span style={{ color: RED }}> ■ &gt;90%</span> (critical). Larger values fill more of the color scale. Quickly spot which hosts are at risk.
+            </InsightBox>
+            {!heatmapData.length ? (
+              <Flex justifyContent="center" padding={32}><Strong>No host data available</Strong></Flex>
+            ) : (
+              <div style={{ border: TILE_BORDER, borderRadius: 10, padding: 16, background: TILE_BG, boxShadow: TILE_SHADOW }}>
+                <HoneycombChart
+                  data={heatmapData}
+                  colorScheme={[
+                    { from: 0, to: 80, color: GREEN },
+                    { from: 80, to: 90, color: YELLOW },
+                    { from: 90, to: 200, color: RED },
+                  ]}
+                  showLabels
+                >
+                  <HoneycombChart.Legend />
+                </HoneycombChart>
+              </div>
+            )}
+          </Flex>
+        </Tab>
+
+        {/* ═══════════════════════ CORRELATION MATRIX ═══════════════════════ */}
+        <Tab title="Correlation Matrix">
+          <Flex flexDirection="column" gap={16} paddingTop={16}>
+            <SectionHeader title="Cross-Resource Correlation Matrix" />
+            <InsightBox>
+              <strong>How to read this:</strong> This shows how each pair of resources moves together. Values close to 1 mean they increase and decrease in lockstep. If CPU and Memory are highly correlated, a traffic spike will stress both simultaneously — compounding the risk. Use this to identify which resources need to be scaled together.
+            </InsightBox>
+            {!correlationMatrix ? (
+              <Flex justifyContent="center" padding={32}><Strong>No analytics data available</Strong></Flex>
+            ) : (
+              <div style={{ border: TILE_BORDER, borderRadius: 10, padding: 24, background: TILE_BG, boxShadow: TILE_SHADOW }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14, textAlign: "center" }}>
+                  <thead>
+                    <tr style={{ borderBottom: "1px solid rgba(99,130,191,0.3)" }}>
+                      <th style={{ padding: 12, textAlign: "left" }}></th>
+                      <th style={{ padding: 12 }}>Traffic</th>
+                      <th style={{ padding: 12 }}>CPU</th>
+                      <th style={{ padding: 12 }}>Memory</th>
+                      <th style={{ padding: 12 }}>Disk</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[
+                      { label: "Traffic", values: [1, correlationMatrix.trafficCpu, correlationMatrix.trafficMem, correlationMatrix.trafficDisk] },
+                      { label: "CPU", values: [correlationMatrix.trafficCpu, 1, correlationMatrix.cpuMem, correlationMatrix.cpuDisk] },
+                      { label: "Memory", values: [correlationMatrix.trafficMem, correlationMatrix.cpuMem, 1, correlationMatrix.memDisk] },
+                      { label: "Disk", values: [correlationMatrix.trafficDisk, correlationMatrix.cpuDisk, correlationMatrix.memDisk, 1] },
+                    ].map((row) => (
+                      <tr key={row.label} style={{ borderBottom: "1px solid rgba(99,130,191,0.15)" }}>
+                        <td style={{ padding: 12, textAlign: "left", fontWeight: 700 }}>{row.label}</td>
+                        {row.values.map((v, i) => (
+                          <td key={i} style={{ padding: 12, fontWeight: v === 1 ? 400 : 700, color: v === 1 ? "#666" : v >= 0.5 ? GREEN : v >= 0.3 ? YELLOW : RED, background: v === 1 ? "transparent" : `rgba(${v >= 0.5 ? "0,210,106" : v >= 0.3 ? "252,213,63" : "248,49,47"}, 0.1)` }}>
+                            {v === 1 ? "—" : round(v)}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Flex>
+        </Tab>
+
+        {/* ═══════════════════════ TREND DECOMPOSITION ═══════════════════════ */}
+        <Tab title="Trend Analysis">
+          <Flex flexDirection="column" gap={16} paddingTop={16}>
+            <SectionHeader title="Trend Decomposition — Growth Direction & Volatility" />
+            <InsightBox>
+              <strong>How to read this:</strong> This breaks each resource's timeseries into two components:
+              <ul style={{ margin: "6px 0 0 0", paddingLeft: 20 }}>
+                <li><strong>Trend Slope</strong> — Is the resource trending up or down? A positive slope means it's growing over time. Larger values = faster growth.</li>
+                <li><strong>Residual Volatility</strong> — How "noisy" is the data after removing the trend? High volatility means unpredictable spikes that make capacity planning harder.</li>
+                <li><strong>Trend Start → End</strong> — The smoothed value at the beginning vs end of your timeframe, showing the overall trajectory.</li>
+              </ul>
+            </InsightBox>
+            {!trendData ? (
+              <Flex justifyContent="center" padding={32}><Strong>No analytics data available</Strong></Flex>
+            ) : (
+              <>
+                {(["cpu", "mem", "disk", "traffic"] as const).map((key) => {
+                  const data = trendData[key];
+                  const label = key === "cpu" ? "CPU" : key === "mem" ? "Memory" : key === "disk" ? "Disk" : "Traffic";
+                  const slopeColor = data.trendSlope > 0.5 ? RED : data.trendSlope > 0.1 ? YELLOW : GREEN;
+                  return (
+                    <div key={key}>
+                      <Heading level={6}>{label}</Heading>
+                      <Flex gap={8} flexWrap="wrap">
+                        <MetricCard label="Trend Slope (/interval)" value={data.trendSlope} color={slopeColor} bordered style={{ flex: 1, maxWidth: "none" }} />
+                        <MetricCard label="Residual Volatility" value={data.residualStd} color={data.residualStd > 5 ? RED : GREEN} bordered style={{ flex: 1, maxWidth: "none" }} />
+                        <MetricCard label="Trend Start" value={data.trendStart} unit="%" color={BLUE} bordered style={{ flex: 1, maxWidth: "none" }} />
+                        <MetricCard label="Trend End" value={data.trendEnd} unit="%" color={BLUE} bordered style={{ flex: 1, maxWidth: "none" }} />
+                      </Flex>
+                      <InsightBox color={slopeColor}>
+                        {data.trendSlope > 0.5
+                          ? `⚠️ ${label} is growing rapidly. At this rate, capacity action is needed soon.`
+                          : data.trendSlope > 0.1
+                          ? `${label} is gradually increasing. Keep monitoring — it's trending upward but not yet urgent.`
+                          : data.trendSlope > -0.1
+                          ? `${label} is relatively flat — no significant growth trend. Current capacity should hold.`
+                          : `${label} is trending downward — usage is decreasing over time, which is favorable.`
+                        }
+                        {data.residualStd > 5 ? ` Note: High volatility (${data.residualStd}) means spikes are common — plan for peak capacity, not averages.` : ""}
+                      </InsightBox>
+                    </div>
+                  );
+                })}
+              </>
+            )}
+          </Flex>
+        </Tab>
+
+        {/* ═══════════════════════ CAPACITY REPORT ═══════════════════════ */}
+        <Tab title="Capacity Report">
+          <Flex flexDirection="column" gap={16} paddingTop={16}>
+            <SectionHeader title="Executive Capacity Summary" />
+            <InsightBox>
+              <strong>How to use:</strong> This is a one-page summary of your infrastructure capacity posture. Use the "Copy to Clipboard" button to share with stakeholders.
+            </InsightBox>
+            {metrics && (
+              <>
+                <Button variant="emphasized" onClick={() => {
+                  const lines = [
+                    `CAPACITY REPORT — ${new Date().toLocaleDateString()}`,
+                    `Timeframe: ${timeframeDays} days | Traffic Scenario: +${trafficChangePercent}% | Provision Goal: ${provisionGoal}%`,
+                    `Hosts Analyzed: ${activeHosts.length}`,
+                    "",
+                    "RESOURCE SUMMARY",
+                    `  CPU:    Observed High=${round(cpu.high)}%  Forecast High=${round(cpuForecast.high)}%  PCC=${round(cpuPCC)}  Provisioning=${round(cpuProvisioning)}%`,
+                    `  Memory: Observed High=${round(memory.high)}%  Forecast High=${round(memForecast.high)}%  PCC=${round(memPCC)}  Provisioning=${round(memProvisioning)}%`,
+                    `  Disk:   Observed High=${round(disk.high)}%  Forecast High=${round(diskForecast.high)}%  PCC=${round(diskPCC)}  Provisioning=${round(diskProvisioning)}%`,
+                    "",
+                    "RIGHT-SIZING",
+                    `  Under-Provisioned: ${rightSizingData.filter((r) => r.Status === "Under-Provisioned").length}`,
+                    `  Over-Provisioned: ${rightSizingData.filter((r) => r.Status === "Over-Provisioned").length}`,
+                    `  Optimal: ${rightSizingData.filter((r) => r.Status === "Optimal").length}`,
+                    "",
+                    "SATURATION COUNTDOWN",
+                    `  At Risk (≤30 days): ${saturationData.filter((r) => typeof r._minDays === "number" && r._minDays <= 30).length}`,
+                    `  Warning (31–90 days): ${saturationData.filter((r) => typeof r._minDays === "number" && r._minDays > 30 && r._minDays <= 90).length}`,
+                    "",
+                    alertViolations.length > 0 ? `ALERT VIOLATIONS: ${alertViolations.length}` : "NO ALERT VIOLATIONS",
+                  ];
+                  navigator.clipboard.writeText(lines.join("\n"));
+                }}>
+                  Copy Report to Clipboard
+                </Button>
+                <div style={{ border: TILE_BORDER, borderRadius: 10, padding: 24, background: TILE_BG, boxShadow: TILE_SHADOW, fontFamily: "monospace", fontSize: 13, lineHeight: 1.8, whiteSpace: "pre-wrap", color: "#d0d4e0" }}>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: "#4589FF", marginBottom: 12 }}>CAPACITY REPORT — {new Date().toLocaleDateString()}</div>
+                  <div>Timeframe: <strong>{timeframeDays} days</strong> | Traffic Scenario: <strong>+{trafficChangePercent}%</strong> | Provision Goal: <strong>{provisionGoal}%</strong></div>
+                  <div>Hosts Analyzed: <strong>{activeHosts.length}</strong></div>
+                  <div style={{ marginTop: 16, fontWeight: 700, color: "#4589FF" }}>RESOURCE FORECASTS</div>
+                  <div>CPU:    Observed High=<span style={{ color: getResourceColor(cpu.high) }}>{round(cpu.high)}%</span>  →  Forecast High=<span style={{ color: getResourceColor(cpuForecast.high) }}>{round(cpuForecast.high)}%</span>  |  Headroom=<span style={{ color: getProvisioningColor(cpuProvisioning) }}>{round(cpuProvisioning)}%</span></div>
+                  <div>Memory: Observed High=<span style={{ color: getResourceColor(memory.high) }}>{round(memory.high)}%</span>  →  Forecast High=<span style={{ color: getResourceColor(memForecast.high) }}>{round(memForecast.high)}%</span>  |  Headroom=<span style={{ color: getProvisioningColor(memProvisioning) }}>{round(memProvisioning)}%</span></div>
+                  <div>Disk:   Observed High=<span style={{ color: getResourceColor(disk.high) }}>{round(disk.high)}%</span>  →  Forecast High=<span style={{ color: getResourceColor(diskForecast.high) }}>{round(diskForecast.high)}%</span>  |  Headroom=<span style={{ color: getProvisioningColor(diskProvisioning) }}>{round(diskProvisioning)}%</span></div>
+                  <div style={{ marginTop: 16, fontWeight: 700, color: "#4589FF" }}>RIGHT-SIZING SUMMARY</div>
+                  <div><span style={{ color: RED }}>Under-Provisioned: {rightSizingData.filter((r) => r.Status === "Under-Provisioned").length}</span> | <span style={{ color: YELLOW }}>Over-Provisioned: {rightSizingData.filter((r) => r.Status === "Over-Provisioned").length}</span> | <span style={{ color: GREEN }}>Optimal: {rightSizingData.filter((r) => r.Status === "Optimal").length}</span></div>
+                  <div style={{ marginTop: 16, fontWeight: 700, color: "#4589FF" }}>SATURATION RISK</div>
+                  <div><span style={{ color: RED }}>At Risk (≤30d): {saturationData.filter((r) => typeof r._minDays === "number" && r._minDays <= 30).length}</span> | <span style={{ color: YELLOW }}>Warning (31–90d): {saturationData.filter((r) => typeof r._minDays === "number" && r._minDays > 30 && r._minDays <= 90).length}</span></div>
+                  {alertViolations.length > 0 && (
+                    <>
+                      <div style={{ marginTop: 16, fontWeight: 700, color: RED }}>ALERT VIOLATIONS ({alertViolations.length})</div>
+                      {alertViolations.slice(0, 10).map((v, i) => (
+                        <div key={i}>{v.host}: {v.rule} (actual: {v.actual}%)</div>
+                      ))}
+                    </>
+                  )}
+                </div>
+              </>
+            )}
+          </Flex>
+        </Tab>
+
+        {/* ═══════════════════════ BASELINE SNAPSHOTS ═══════════════════════ */}
+        <Tab title="Baselines">
+          <Flex flexDirection="column" gap={16} paddingTop={16}>
+            <SectionHeader title="Baseline Snapshots — Track Capacity Over Time" />
+            <InsightBox>
+              <strong>How to use:</strong> Save a snapshot of today's metrics as a named baseline (e.g., "Before migration", "Post scale-out"). Compare future data against these baselines to verify that capacity actions had the expected effect.
+            </InsightBox>
+            <Flex gap={8} alignItems="flex-end" flexWrap="wrap">
+              <Flex flexDirection="column" gap={4} style={{ flex: "1 1 200px" }}>
+                <Strong>Baseline Name</Strong>
+                <input value={baselineName} onChange={(e) => setBaselineName(e.target.value)} placeholder="e.g. Pre-migration baseline" style={{ padding: "6px 12px", borderRadius: 6, border: "1px solid rgba(99,130,191,0.3)", background: "rgba(30,35,55,0.7)", color: "#d0d4e0", fontSize: 13 }} />
+              </Flex>
+              <Button variant="emphasized" onClick={saveBaseline} disabled={!metrics || !baselineName.trim()}>Save Current as Baseline</Button>
+            </Flex>
+            {baselines.length > 0 && (
+              <>
+                <Heading level={6}>Saved Baselines vs Current</Heading>
+                <DataTable
+                  data={baselines.map((b) => ({
+                    Name: b.name,
+                    "Saved At": b.timestamp,
+                    "CPU High (then)": b.cpuHigh,
+                    "CPU High (now)": round(cpu.high),
+                    "CPU Δ": round(cpu.high - b.cpuHigh),
+                    "MEM High (then)": b.memHigh,
+                    "MEM High (now)": round(memory.high),
+                    "MEM Δ": round(memory.high - b.memHigh),
+                    "Disk High (then)": b.diskHigh,
+                    "Disk High (now)": round(disk.high),
+                    "Disk Δ": round(disk.high - b.diskHigh),
+                  }))}
+                  columns={[
+                    { id: "name", header: "Baseline", accessor: "Name" },
+                    { id: "saved", header: "Saved At", accessor: "Saved At" },
+                    { id: "cpuThen", header: "CPU (then)", accessor: "CPU High (then)", columnType: "number" as const },
+                    { id: "cpuNow", header: "CPU (now)", accessor: "CPU High (now)", columnType: "number" as const },
+                    { id: "cpuD", header: "CPU Δ", accessor: "CPU Δ", columnType: "number" as const, thresholds: [{ comparator: "greater-than" as const, value: 0, backgroundColor: RED, color: "#000" }, { comparator: "less-than-or-equal-to" as const, value: 0, backgroundColor: GREEN, color: "#000" }] },
+                    { id: "memThen", header: "MEM (then)", accessor: "MEM High (then)", columnType: "number" as const },
+                    { id: "memNow", header: "MEM (now)", accessor: "MEM High (now)", columnType: "number" as const },
+                    { id: "memD", header: "MEM Δ", accessor: "MEM Δ", columnType: "number" as const, thresholds: [{ comparator: "greater-than" as const, value: 0, backgroundColor: RED, color: "#000" }, { comparator: "less-than-or-equal-to" as const, value: 0, backgroundColor: GREEN, color: "#000" }] },
+                    { id: "diskThen", header: "Disk (then)", accessor: "Disk High (then)", columnType: "number" as const },
+                    { id: "diskNow", header: "Disk (now)", accessor: "Disk High (now)", columnType: "number" as const },
+                    { id: "diskD", header: "Disk Δ", accessor: "Disk Δ", columnType: "number" as const, thresholds: [{ comparator: "greater-than" as const, value: 0, backgroundColor: RED, color: "#000" }, { comparator: "less-than-or-equal-to" as const, value: 0, backgroundColor: GREEN, color: "#000" }] },
+                  ]}
+                  sortable resizable
+                />
+                <Flex gap={8} flexWrap="wrap">
+                  {baselines.map((b) => (
+                    <Button key={b.id} variant="default" onClick={() => setBaselines((prev) => prev.filter((p) => p.id !== b.id))}>
+                      Remove "{b.name}"
+                    </Button>
+                  ))}
+                </Flex>
+              </>
+            )}
+          </Flex>
+        </Tab>
+
+        {/* ═══════════════════════ ALERT THRESHOLDS ═══════════════════════ */}
+        <Tab title="Alert Rules">
+          <Flex flexDirection="column" gap={16} paddingTop={16}>
+            <SectionHeader title="Custom Capacity Alert Rules" />
+            <InsightBox>
+              <strong>How to use:</strong> Define threshold rules to flag hosts that breach your capacity criteria. For example, "Flag any host where Forecast CPU High &gt; 90%". Rules are evaluated against the current per-host data and violations appear below in real-time.
+            </InsightBox>
+            <Flex gap={8} alignItems="flex-end" flexWrap="wrap">
+              <Flex flexDirection="column" gap={4} style={{ flex: "1 1 180px" }}>
+                <Strong>Metric</Strong>
+                <Select value={newAlertMetric} onChange={(val) => { if (val) setNewAlertMetric(val as string); }}>
+                  <Select.Content>
+                    {["Forecast CPU High", "Forecast MEM High", "Forecast Disk High", "Observed CPU High", "Observed MEM High"].map((m) => (
+                      <Select.Option key={m} value={m}>{m}</Select.Option>
+                    ))}
+                  </Select.Content>
+                </Select>
+              </Flex>
+              <Flex flexDirection="column" gap={4} style={{ flex: "0 0 100px" }}>
+                <Strong>Operator</Strong>
+                <Select value={newAlertComparator} onChange={(val) => { if (val) setNewAlertComparator(val as string); }}>
+                  <Select.Content>
+                    <Select.Option value=">">&gt;</Select.Option>
+                    <Select.Option value=">=">&gt;=</Select.Option>
+                    <Select.Option value="<">&lt;</Select.Option>
+                  </Select.Content>
+                </Select>
+              </Flex>
+              <Flex flexDirection="column" gap={4} style={{ flex: "0 0 120px" }}>
+                <Strong>Threshold (%)</Strong>
+                <NumberInput value={newAlertThreshold} onChange={(val) => setNewAlertThreshold(val ?? 90)} min={0} max={100} />
+              </Flex>
+              <Button variant="emphasized" onClick={addAlertRule}>Add Rule</Button>
+            </Flex>
+            {alertRules.length > 0 && (
+              <>
+                <Heading level={6}>Active Rules</Heading>
+                <Flex gap={8} flexWrap="wrap">
+                  {alertRules.map((rule) => (
+                    <div key={rule.id} style={{ padding: "8px 16px", border: TILE_BORDER, borderRadius: 8, background: TILE_BG, display: "flex", alignItems: "center", gap: 8 }}>
+                      <Strong>{rule.metric} {rule.comparator} {rule.threshold}%</Strong>
+                      <Button variant="default" onClick={() => setAlertRules((prev) => prev.filter((r) => r.id !== rule.id))}>✕</Button>
+                    </div>
+                  ))}
+                </Flex>
+              </>
+            )}
+            {alertViolations.length > 0 && (
+              <>
+                <Heading level={6}>Violations ({alertViolations.length})</Heading>
+                <DataTable
+                  data={alertViolations}
+                  columns={[
+                    { id: "rule", header: "Rule", accessor: "rule" },
+                    { id: "host", header: "Host", accessor: "host" },
+                    { id: "actual", header: "Actual Value (%)", accessor: "actual", columnType: "number" as const, thresholds: resourceThresholds("actual") },
+                  ]}
+                  sortable resizable
+                >
+                  <DataTable.Pagination defaultPageSize={15} />
+                </DataTable>
+              </>
+            )}
+            {alertRules.length > 0 && alertViolations.length === 0 && (
+              <InsightBox color={GREEN}>
+                <strong>✓ All clear.</strong> No hosts are currently violating your alert rules.
+              </InsightBox>
             )}
           </Flex>
         </Tab>

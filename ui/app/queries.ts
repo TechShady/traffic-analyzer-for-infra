@@ -367,7 +367,7 @@ function computeSkewness(arr: number[], mean: number, stdDev: number): number {
   return arr.reduce((sum, v) => sum + ((v - mean) / stdDev) ** 3, 0) / arr.length;
 }
 
-function computePCC(x: number[], y: number[]): number {
+export function computePCC(x: number[], y: number[]): number {
   const n = Math.min(x.length, y.length);
   if (n === 0) return 0;
   let sumXY = 0, sumX = 0, sumY = 0, sumX2 = 0, sumY2 = 0;
@@ -386,6 +386,10 @@ export interface AnalyticsData {
   cpu: { p95: number; p99: number; min: number; max: number; mean: number; stdDev: number; skew: number; pcc: number; lagPCC15m: number; lagPCC30m: number; lagPCC1h: number };
   mem: { p95: number; p99: number; min: number; max: number; mean: number; stdDev: number; skew: number; pcc: number; lagPCC15m: number; lagPCC30m: number; lagPCC1h: number };
   disk: { p95: number; p99: number; min: number; max: number; mean: number; stdDev: number; skew: number; pcc: number; lagPCC15m: number; lagPCC30m: number; lagPCC1h: number };
+  trafficArr: number[];
+  cpuArr: number[];
+  memArr: number[];
+  diskArr: number[];
 }
 
 export function parseAnalytics(records: Array<Record<string, unknown>> | null | undefined): AnalyticsData | null {
@@ -429,5 +433,9 @@ export function parseAnalytics(records: Array<Record<string, unknown>> | null | 
     cpu: { p95: n("Metric1.P95"), p99: n("Metric1.P99"), min: n("Metric1.Min"), max: n("Metric1.Max"), mean: cpuMean, stdDev: cpuStd, skew: computeSkewness(cpuArr, cpuMean, cpuStd), pcc: cpuPCC, lagPCC15m: lagPCC(cpuArr, 3), lagPCC30m: lagPCC(cpuArr, 6), lagPCC1h: lagPCC(cpuArr, 12) },
     mem: { p95: n("Metric2.P95"), p99: n("Metric2.P99"), min: n("Metric2.Min"), max: n("Metric2.Max"), mean: memMean, stdDev: memStd, skew: computeSkewness(memArr, memMean, memStd), pcc: memPCC, lagPCC15m: lagPCC(memArr, 3), lagPCC30m: lagPCC(memArr, 6), lagPCC1h: lagPCC(memArr, 12) },
     disk: { p95: n("Metric3.P95"), p99: n("Metric3.P99"), min: n("Metric3.Min"), max: n("Metric3.Max"), mean: diskMean, stdDev: diskStd, skew: computeSkewness(diskArr, diskMean, diskStd), pcc: diskPCC, lagPCC15m: lagPCC(diskArr, 3), lagPCC30m: lagPCC(diskArr, 6), lagPCC1h: lagPCC(diskArr, 12) },
+    trafficArr,
+    cpuArr,
+    memArr,
+    diskArr,
   };
 }

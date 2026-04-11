@@ -1,0 +1,276 @@
+{
+  "name": "Dollar General - Kubernetes SRE Dashboard",
+  "type": "dashboard",
+  "content": {
+    "version": 21,
+    "variables": [
+      {
+        "version": 2,
+        "key": "ClusterFilter",
+        "type": "query",
+        "visible": true,
+        "editable": true,
+        "input": "smartscapeNodes K8S_CLUSTER | fields k8s.cluster.name | sort k8s.cluster.name asc",
+        "multiple": true,
+        "defaultValue": "*"
+      },
+      {
+        "version": 2,
+        "key": "NamespaceFilter",
+        "type": "query",
+        "visible": true,
+        "editable": true,
+        "input": "smartscapeNodes K8S_NAMESPACE | fields k8s.namespace.name | dedup k8s.namespace.name | sort k8s.namespace.name asc",
+        "multiple": true,
+        "defaultValue": "*"
+      }
+    ],
+    "tiles": {
+      "0": {
+        "type": "markdown",
+        "content": "![Dollar General](https://upload.wikimedia.org/wikipedia/commons/thumb/7/75/Dollar_General_logo.svg/200px-Dollar_General_logo.svg.png)\n# Kubernetes SRE Dashboard\nReal-time observability for Dollar General Kubernetes infrastructure"
+      },
+      "1": {
+        "type": "data",
+        "title": "Total Clusters",
+        "query": "smartscapeNodes K8S_CLUSTER | summarize cluster_count = count()",
+        "visualization": "singleValue",
+        "visualizationSettings": {},
+        "querySettings": {}
+      },
+      "2": {
+        "type": "data",
+        "title": "Total Nodes",
+        "query": "smartscapeNodes K8S_NODE | filter in(k8s.cluster.name, array($ClusterFilter)) | summarize node_count = count()",
+        "visualization": "singleValue",
+        "visualizationSettings": {},
+        "querySettings": {}
+      },
+      "3": {
+        "type": "data",
+        "title": "Total Pods",
+        "query": "smartscapeNodes K8S_POD | filter in(k8s.cluster.name, array($ClusterFilter)) and in(k8s.namespace.name, array($NamespaceFilter)) | summarize pod_count = count()",
+        "visualization": "singleValue",
+        "visualizationSettings": {},
+        "querySettings": {}
+      },
+      "4": {
+        "type": "data",
+        "title": "Container Restarts",
+        "query": "timeseries restarts = sum(dt.kubernetes.container.restarts), by: {k8s.cluster.name} | filter in(k8s.cluster.name, array($ClusterFilter)) | fieldsAdd total = arraySum(restarts) | summarize total_restarts = sum(total)",
+        "visualization": "singleValue",
+        "visualizationSettings": {},
+        "querySettings": {}
+      },
+      "5": {
+        "type": "data",
+        "title": "OOM Kills",
+        "query": "timeseries oom = sum(dt.kubernetes.container.oom_kills), by: {k8s.cluster.name} | filter in(k8s.cluster.name, array($ClusterFilter)) | fieldsAdd total = arraySum(oom) | summarize total_oom_kills = sum(total)",
+        "visualization": "singleValue",
+        "visualizationSettings": {},
+        "querySettings": {}
+      },
+      "6": {
+        "type": "markdown",
+        "content": "## Cluster Resource Utilization"
+      },
+      "7": {
+        "type": "data",
+        "title": "CPU Usage by Cluster",
+        "query": "timeseries cpu = avg(dt.kubernetes.container.cpu_usage), by: {k8s.cluster.name} | filter in(k8s.cluster.name, array($ClusterFilter))",
+        "visualization": "areaChart",
+        "visualizationSettings": {},
+        "querySettings": {}
+      },
+      "8": {
+        "type": "data",
+        "title": "Memory Usage by Cluster",
+        "query": "timeseries mem = avg(dt.kubernetes.container.memory_working_set), by: {k8s.cluster.name} | filter in(k8s.cluster.name, array($ClusterFilter))",
+        "visualization": "areaChart",
+        "visualizationSettings": {},
+        "querySettings": {}
+      },
+      "9": {
+        "type": "markdown",
+        "content": "## Container Health"
+      },
+      "10": {
+        "type": "data",
+        "title": "Container Restarts by Cluster",
+        "query": "timeseries restarts = sum(dt.kubernetes.container.restarts), by: {k8s.cluster.name} | filter in(k8s.cluster.name, array($ClusterFilter))",
+        "visualization": "barChart",
+        "visualizationSettings": {},
+        "querySettings": {}
+      },
+      "11": {
+        "type": "data",
+        "title": "OOM Kills by Cluster",
+        "query": "timeseries oom = sum(dt.kubernetes.container.oom_kills), by: {k8s.cluster.name} | filter in(k8s.cluster.name, array($ClusterFilter))",
+        "visualization": "barChart",
+        "visualizationSettings": {},
+        "querySettings": {}
+      },
+      "12": {
+        "type": "markdown",
+        "content": "## Workload Health"
+      },
+      "13": {
+        "type": "data",
+        "title": "Degraded Deployments (Ready < Desired)",
+        "query": "smartscapeNodes K8S_DEPLOYMENT | filter in(k8s.cluster.name, array($ClusterFilter)) and in(k8s.namespace.name, array($NamespaceFilter)) | parse k8s.object, \"JSON:config\" | fieldsAdd desired = config[`spec`][`replicas`], ready = config[`status`][`readyReplicas`], available = config[`status`][`availableReplicas`] | filter isNotNull(desired) and desired > 0 and (isNull(ready) or ready < desired) | fields k8s.cluster.name, k8s.namespace.name, k8s.workload.name, desired, ready, available | sort k8s.cluster.name asc",
+        "visualization": "table",
+        "visualizationSettings": {},
+        "querySettings": {}
+      },
+      "14": {
+        "type": "data",
+        "title": "Stuck Rollouts (ProgressDeadlineExceeded)",
+        "query": "smartscapeNodes K8S_DEPLOYMENT | filter in(k8s.cluster.name, array($ClusterFilter)) and in(k8s.namespace.name, array($NamespaceFilter)) | parse k8s.object, \"JSON:config\" | expand condition = config[`status`][`conditions`] | fieldsAdd cond_type = condition[`type`], cond_reason = condition[`reason`], cond_message = condition[`message`] | filter cond_type == \"Progressing\" and cond_reason == \"ProgressDeadlineExceeded\" | fields k8s.cluster.name, k8s.namespace.name, k8s.workload.name, cond_message",
+        "visualization": "table",
+        "visualizationSettings": {},
+        "querySettings": {}
+      },
+      "15": {
+        "type": "markdown",
+        "content": "## Pod Issues"
+      },
+      "16": {
+        "type": "data",
+        "title": "Pods Not Running",
+        "query": "smartscapeNodes K8S_POD | filter in(k8s.cluster.name, array($ClusterFilter)) and in(k8s.namespace.name, array($NamespaceFilter)) | parse k8s.object, \"JSON:config\" | fieldsAdd phase = config[`status`][`phase`] | filter phase != \"Running\" and phase != \"Succeeded\" | fields k8s.cluster.name, k8s.namespace.name, k8s.pod.name, phase | sort k8s.cluster.name asc",
+        "visualization": "table",
+        "visualizationSettings": {},
+        "querySettings": {}
+      },
+      "17": {
+        "type": "data",
+        "title": "Top Restarting Pods",
+        "query": "timeseries restarts = sum(dt.kubernetes.container.restarts), by: {k8s.pod.name, k8s.namespace.name, k8s.cluster.name} | filter in(k8s.cluster.name, array($ClusterFilter)) and in(k8s.namespace.name, array($NamespaceFilter)) | fieldsAdd total_restarts = arraySum(restarts) | filter total_restarts > 0 | sort total_restarts desc | fields k8s.cluster.name, k8s.namespace.name, k8s.pod.name, total_restarts | limit 20",
+        "visualization": "table",
+        "visualizationSettings": {},
+        "querySettings": {}
+      },
+      "18": {
+        "type": "markdown",
+        "content": "## Node Health"
+      },
+      "19": {
+        "type": "data",
+        "title": "Unhealthy Nodes",
+        "query": "smartscapeNodes K8S_NODE | filter in(k8s.cluster.name, array($ClusterFilter)) | parse k8s.object, \"JSON:config\" | expand condition = config[`status`][`conditions`] | fieldsAdd cond_type = condition[`type`], cond_status = condition[`status`], message = condition[`message`] | filter (cond_type == \"Ready\" and cond_status != \"True\") or (in(cond_type, array(\"MemoryPressure\",\"DiskPressure\",\"PIDPressure\")) and cond_status == \"True\") | fields k8s.cluster.name, k8s.node.name, cond_type, cond_status, message",
+        "visualization": "table",
+        "visualizationSettings": {},
+        "querySettings": {}
+      },
+      "20": {
+        "type": "data",
+        "title": "Node Count by Cluster",
+        "query": "smartscapeNodes K8S_NODE | filter in(k8s.cluster.name, array($ClusterFilter)) | summarize node_count = count(), by: {k8s.cluster.name} | sort node_count desc",
+        "visualization": "categoricalBarChart",
+        "visualizationSettings": {},
+        "querySettings": {}
+      },
+      "21": {
+        "type": "markdown",
+        "content": "## CPU Throttling"
+      },
+      "22": {
+        "type": "data",
+        "title": "CPU Throttled Containers (>25%)",
+        "query": "timeseries { throttled = avg(dt.kubernetes.container.cpu_throttled), limit_cpu = avg(dt.kubernetes.container.limits_cpu), usage = avg(dt.kubernetes.container.cpu_usage) }, by: {k8s.pod.name, k8s.namespace.name, k8s.cluster.name} | filter in(k8s.cluster.name, array($ClusterFilter)) and in(k8s.namespace.name, array($NamespaceFilter)) | fieldsAdd throttle_pct = if(arrayAvg(limit_cpu) > 0, (arrayAvg(throttled) / arrayAvg(limit_cpu)) * 100, else: 0) | filter throttle_pct > 25 | sort throttle_pct desc | fields k8s.cluster.name, k8s.namespace.name, k8s.pod.name, throttle_pct | limit 20",
+        "visualization": "table",
+        "visualizationSettings": {},
+        "querySettings": {}
+      },
+      "23": {
+        "type": "data",
+        "title": "CPU Throttling Trend",
+        "query": "timeseries throttled = avg(dt.kubernetes.container.cpu_throttled), by: {k8s.cluster.name} | filter in(k8s.cluster.name, array($ClusterFilter))",
+        "visualization": "lineChart",
+        "visualizationSettings": {},
+        "querySettings": {}
+      },
+      "24": {
+        "type": "markdown",
+        "content": "## Kubernetes Error Logs"
+      },
+      "25": {
+        "type": "data",
+        "title": "Error Logs by Namespace",
+        "query": "fetch logs | filter isNotNull(k8s.namespace.name) and loglevel == \"ERROR\" | filter in(k8s.cluster.name, array($ClusterFilter)) and in(k8s.namespace.name, array($NamespaceFilter)) | summarize error_count = count(), by: {k8s.cluster.name, k8s.namespace.name} | sort error_count desc | limit 20",
+        "visualization": "table",
+        "visualizationSettings": {},
+        "querySettings": {}
+      },
+      "26": {
+        "type": "data",
+        "title": "K8s Error Log Trend",
+        "query": "fetch logs | filter isNotNull(k8s.namespace.name) and loglevel == \"ERROR\" | filter in(k8s.cluster.name, array($ClusterFilter)) | makeTimeseries error_count = count(), by: {k8s.cluster.name}",
+        "visualization": "areaChart",
+        "visualizationSettings": {},
+        "querySettings": {}
+      },
+      "27": {
+        "type": "markdown",
+        "content": "## Cluster Inventory"
+      },
+      "28": {
+        "type": "data",
+        "title": "Pods by Cluster",
+        "query": "smartscapeNodes K8S_POD | filter in(k8s.cluster.name, array($ClusterFilter)) | summarize pod_count = count(), by: {k8s.cluster.name} | sort pod_count desc",
+        "visualization": "categoricalBarChart",
+        "visualizationSettings": {},
+        "querySettings": {}
+      },
+      "29": {
+        "type": "data",
+        "title": "Workloads by Type",
+        "query": "smartscapeNodes K8S_DEPLOYMENT, K8S_STATEFULSET, K8S_DAEMONSET | filter in(k8s.cluster.name, array($ClusterFilter)) | summarize count(), by: {k8s.workload.kind} | sort `count()` desc",
+        "visualization": "donutChart",
+        "visualizationSettings": {},
+        "querySettings": {}
+      },
+      "30": {
+        "type": "data",
+        "title": "Namespaces per Cluster",
+        "query": "smartscapeNodes K8S_NAMESPACE | filter in(k8s.cluster.name, array($ClusterFilter)) | summarize ns_count = count(), by: {k8s.cluster.name} | sort ns_count desc",
+        "visualization": "categoricalBarChart",
+        "visualizationSettings": {},
+        "querySettings": {}
+      }
+    },
+    "layouts": {
+      "0":  { "x": 0,  "y": 0,  "w": 20, "h": 3 },
+      "1":  { "x": 0,  "y": 3,  "w": 4,  "h": 4 },
+      "2":  { "x": 4,  "y": 3,  "w": 4,  "h": 4 },
+      "3":  { "x": 8,  "y": 3,  "w": 4,  "h": 4 },
+      "4":  { "x": 12, "y": 3,  "w": 4,  "h": 4 },
+      "5":  { "x": 16, "y": 3,  "w": 4,  "h": 4 },
+      "6":  { "x": 0,  "y": 7,  "w": 20, "h": 1 },
+      "7":  { "x": 0,  "y": 8,  "w": 10, "h": 7 },
+      "8":  { "x": 10, "y": 8,  "w": 10, "h": 7 },
+      "9":  { "x": 0,  "y": 15, "w": 20, "h": 1 },
+      "10": { "x": 0,  "y": 16, "w": 10, "h": 7 },
+      "11": { "x": 10, "y": 16, "w": 10, "h": 7 },
+      "12": { "x": 0,  "y": 23, "w": 20, "h": 1 },
+      "13": { "x": 0,  "y": 24, "w": 10, "h": 7 },
+      "14": { "x": 10, "y": 24, "w": 10, "h": 7 },
+      "15": { "x": 0,  "y": 31, "w": 20, "h": 1 },
+      "16": { "x": 0,  "y": 32, "w": 10, "h": 7 },
+      "17": { "x": 10, "y": 32, "w": 10, "h": 7 },
+      "18": { "x": 0,  "y": 39, "w": 20, "h": 1 },
+      "19": { "x": 0,  "y": 40, "w": 10, "h": 7 },
+      "20": { "x": 10, "y": 40, "w": 10, "h": 7 },
+      "21": { "x": 0,  "y": 47, "w": 20, "h": 1 },
+      "22": { "x": 0,  "y": 48, "w": 10, "h": 7 },
+      "23": { "x": 10, "y": 48, "w": 10, "h": 7 },
+      "24": { "x": 0,  "y": 55, "w": 20, "h": 1 },
+      "25": { "x": 0,  "y": 56, "w": 10, "h": 7 },
+      "26": { "x": 10, "y": 56, "w": 10, "h": 7 },
+      "27": { "x": 0,  "y": 63, "w": 20, "h": 1 },
+      "28": { "x": 0,  "y": 64, "w": 7,  "h": 7 },
+      "29": { "x": 7,  "y": 64, "w": 6,  "h": 7 },
+      "30": { "x": 13, "y": 64, "w": 7,  "h": 7 }
+    }
+  }
+}
