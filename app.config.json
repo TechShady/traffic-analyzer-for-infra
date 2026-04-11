@@ -3,7 +3,7 @@
   "environmentUrl": "https://guu84124.apps.dynatrace.com/",
   "app": {
     "name": "Traffic Analyzer for Infrastructure",
-    "version": "0.16.3",
+    "version": "0.17.0",
     "description": "Infrastructure traffic analysis with forecasting and Pearson Correlation",
     "id": "my.traffic.analyzer.infra.app",
     "scopes": [

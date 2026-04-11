@@ -169,6 +169,9 @@ export const TrafficAnalyzer = () => {
   const [helpOpen, setHelpOpen] = useState(false);
   const [tempTopN, setTempTopN] = useState<number>(DEFAULT_TOP_N);
   const [tempProvisionGoal, setTempProvisionGoal] = useState<number>(DEFAULT_PROVISION_GOAL);
+  const [cpuColSizing, setCpuColSizing] = useState<Record<string, number>>({});
+  const [memColSizing, setMemColSizing] = useState<Record<string, number>>({});
+  const [diskColSizing, setDiskColSizing] = useState<Record<string, number>>({});
 
   // Fetch host group list
   const hostGroupList = useDql({ query: hostGroupListQuery() });
@@ -298,7 +301,7 @@ export const TrafficAnalyzer = () => {
       const pcc = num(r["Pearson Correlation Coefficient"]);
       const obs = { low: num(r["Observed CPU Low"]), avg: num(r["Observed CPU Avg"]), high: num(r["Observed CPU High"]), change: num(r["cpuUsage.PercentChange"]) };
       const fc = forecastForHost(obs, trafficChangePercent, traffic.change, pcc);
-      return { "Host Name": r["Host Name"] as string, "PCC": round(pcc), "Observed CPU Low": round(obs.low), "Observed CPU Avg": round(obs.avg), "Observed CPU High": round(obs.high), "Forecasted Low CPU": round(fc.low), "Forecasted Avg CPU": round(fc.avg), "Forecasted High CPU": round(fc.high), Provisioning: round(provisionGoal - fc.high) };
+      return { "Host Name": r["Host Name"] as string, "PCC": round(pcc), "Observed CPU Low": round(obs.low), "Observed CPU Avg": round(obs.avg), "Observed CPU High": round(obs.high), "Forecast CPU Low": round(fc.low), "Forecast CPU Avg": round(fc.avg), "Forecast CPU High": round(fc.high), Provisioning: round(provisionGoal - fc.high) };
     });
   }, [cpuByHost.data, trafficChangePercent, traffic.change, metrics, provisionGoal]);
 
@@ -308,7 +311,7 @@ export const TrafficAnalyzer = () => {
       const pcc = num(r["Pearson Correlation Coefficient"]);
       const obs = { low: num(r["Observed MEM Low"]), avg: num(r["Observed MEM Avg"]), high: num(r["Observed MEM High"]), change: num(r["memUsage.PercentChange"]) };
       const fc = forecastForHost(obs, trafficChangePercent, traffic.change, pcc);
-      return { "Host Name": r["Host Name"] as string, "PCC": round(pcc), "Observed MEM Low": round(obs.low), "Observed MEM Avg": round(obs.avg), "Observed MEM High": round(obs.high), "Forecasted Low MEM": round(fc.low), "Forecasted Avg MEM": round(fc.avg), "Forecasted High MEM": round(fc.high), Provisioning: round(provisionGoal - fc.high) };
+      return { "Host Name": r["Host Name"] as string, "PCC": round(pcc), "Observed MEM Low": round(obs.low), "Observed MEM Avg": round(obs.avg), "Observed MEM High": round(obs.high), "Forecast MEM Low": round(fc.low), "Forecast MEM Avg": round(fc.avg), "Forecast MEM High": round(fc.high), Provisioning: round(provisionGoal - fc.high) };
     });
   }, [memByHost.data, trafficChangePercent, traffic.change, metrics, provisionGoal]);
 
@@ -318,7 +321,7 @@ export const TrafficAnalyzer = () => {
       const pcc = num(r["Pearson Correlation Coefficient"]);
       const obs = { low: num(r["Observed Disk Free Low"]), avg: num(r["Observed Disk Free Avg"]), high: num(r["Observed Disk Free High"]), change: num(r["diskFree.PercentChange"]) };
       const fc = forecastForHost(obs, trafficChangePercent, traffic.change, pcc);
-      return { "Host Name": r["Host Name"] as string, "PCC": round(pcc), "Observed Disk Free Low": round(obs.low), "Observed Disk Free Avg": round(obs.avg), "Observed Disk Free High": round(obs.high), "Forecasted Low Disk Free": round(fc.low), "Forecasted Avg Disk Free": round(fc.avg), "Forecasted High Disk Free": round(fc.high), Provisioning: round(provisionGoal - fc.high) };
+      return { "Host Name": r["Host Name"] as string, "PCC": round(pcc), "Observed Disk Free Low": round(obs.low), "Observed Disk Free Avg": round(obs.avg), "Observed Disk Free High": round(obs.high), "Forecast Disk Free Low": round(fc.low), "Forecast Disk Free Avg": round(fc.avg), "Forecast Disk Free High": round(fc.high), Provisioning: round(provisionGoal - fc.high) };
     });
   }, [diskByHost.data, trafficChangePercent, traffic.change, metrics, provisionGoal]);
 
@@ -334,9 +337,9 @@ export const TrafficAnalyzer = () => {
     { id: "obsLow", header: "Observed CPU Low", accessor: "Observed CPU Low", columnType: "number" as const, thresholds: resourceThresholds("Observed CPU Low") },
     { id: "obsAvg", header: "Observed CPU Avg", accessor: "Observed CPU Avg", columnType: "number" as const, thresholds: resourceThresholds("Observed CPU Avg") },
     { id: "obsHigh", header: "Observed CPU High", accessor: "Observed CPU High", columnType: "number" as const, thresholds: resourceThresholds("Observed CPU High") },
-    { id: "fcLow", header: "Forecasted Low CPU", accessor: "Forecasted Low CPU", columnType: "number" as const, thresholds: resourceThresholds("Forecasted Low CPU") },
-    { id: "fcAvg", header: "Forecasted Avg CPU", accessor: "Forecasted Avg CPU", columnType: "number" as const, thresholds: resourceThresholds("Forecasted Avg CPU") },
-    { id: "fcHigh", header: "Forecasted High CPU", accessor: "Forecasted High CPU", columnType: "number" as const, thresholds: resourceThresholds("Forecasted High CPU") },
+    { id: "fcLow", header: "Forecast CPU Low", accessor: "Forecast CPU Low", columnType: "number" as const, thresholds: resourceThresholds("Forecast CPU Low") },
+    { id: "fcAvg", header: "Forecast CPU Avg", accessor: "Forecast CPU Avg", columnType: "number" as const, thresholds: resourceThresholds("Forecast CPU Avg") },
+    { id: "fcHigh", header: "Forecast CPU High", accessor: "Forecast CPU High", columnType: "number" as const, thresholds: resourceThresholds("Forecast CPU High") },
     { id: "prov", header: "Provisioning", accessor: "Provisioning", columnType: "number" as const, thresholds: PROVISIONING_THRESHOLDS },
   ], []);
 
@@ -346,9 +349,9 @@ export const TrafficAnalyzer = () => {
     { id: "obsLow", header: "Observed MEM Low", accessor: "Observed MEM Low", columnType: "number" as const, thresholds: resourceThresholds("Observed MEM Low") },
     { id: "obsAvg", header: "Observed MEM Avg", accessor: "Observed MEM Avg", columnType: "number" as const, thresholds: resourceThresholds("Observed MEM Avg") },
     { id: "obsHigh", header: "Observed MEM High", accessor: "Observed MEM High", columnType: "number" as const, thresholds: resourceThresholds("Observed MEM High") },
-    { id: "fcLow", header: "Forecasted Low MEM", accessor: "Forecasted Low MEM", columnType: "number" as const, thresholds: resourceThresholds("Forecasted Low MEM") },
-    { id: "fcAvg", header: "Forecasted Avg MEM", accessor: "Forecasted Avg MEM", columnType: "number" as const, thresholds: resourceThresholds("Forecasted Avg MEM") },
-    { id: "fcHigh", header: "Forecasted High MEM", accessor: "Forecasted High MEM", columnType: "number" as const, thresholds: resourceThresholds("Forecasted High MEM") },
+    { id: "fcLow", header: "Forecast MEM Low", accessor: "Forecast MEM Low", columnType: "number" as const, thresholds: resourceThresholds("Forecast MEM Low") },
+    { id: "fcAvg", header: "Forecast MEM Avg", accessor: "Forecast MEM Avg", columnType: "number" as const, thresholds: resourceThresholds("Forecast MEM Avg") },
+    { id: "fcHigh", header: "Forecast MEM High", accessor: "Forecast MEM High", columnType: "number" as const, thresholds: resourceThresholds("Forecast MEM High") },
     { id: "prov", header: "Provisioning", accessor: "Provisioning", columnType: "number" as const, thresholds: PROVISIONING_THRESHOLDS },
   ], []);
 
@@ -358,9 +361,9 @@ export const TrafficAnalyzer = () => {
     { id: "obsLow", header: "Observed Disk Free Low", accessor: "Observed Disk Free Low", columnType: "number" as const, thresholds: resourceThresholds("Observed Disk Free Low") },
     { id: "obsAvg", header: "Observed Disk Free Avg", accessor: "Observed Disk Free Avg", columnType: "number" as const, thresholds: resourceThresholds("Observed Disk Free Avg") },
     { id: "obsHigh", header: "Observed Disk Free High", accessor: "Observed Disk Free High", columnType: "number" as const, thresholds: resourceThresholds("Observed Disk Free High") },
-    { id: "fcLow", header: "Forecasted Low Disk Free", accessor: "Forecasted Low Disk Free", columnType: "number" as const, thresholds: resourceThresholds("Forecasted Low Disk Free") },
-    { id: "fcAvg", header: "Forecasted Avg Disk Free", accessor: "Forecasted Avg Disk Free", columnType: "number" as const, thresholds: resourceThresholds("Forecasted Avg Disk Free") },
-    { id: "fcHigh", header: "Forecasted High Disk Free", accessor: "Forecasted High Disk Free", columnType: "number" as const, thresholds: resourceThresholds("Forecasted High Disk Free") },
+    { id: "fcLow", header: "Forecast Disk Free Low", accessor: "Forecast Disk Free Low", columnType: "number" as const, thresholds: resourceThresholds("Forecast Disk Free Low") },
+    { id: "fcAvg", header: "Forecast Disk Free Avg", accessor: "Forecast Disk Free Avg", columnType: "number" as const, thresholds: resourceThresholds("Forecast Disk Free Avg") },
+    { id: "fcHigh", header: "Forecast Disk Free High", accessor: "Forecast Disk Free High", columnType: "number" as const, thresholds: resourceThresholds("Forecast Disk Free High") },
     { id: "prov", header: "Provisioning", accessor: "Provisioning", columnType: "number" as const, thresholds: PROVISIONING_THRESHOLDS },
   ], []);
 
@@ -834,7 +837,7 @@ export const TrafficAnalyzer = () => {
           <Flex flexDirection="column" gap={16} paddingTop={16}>
             <Heading level={6}>CPU % by Host - Top {topN} (sorted by Pearson Correlation)</Heading>
             {cpuByHost.isLoading ? <LoadingState /> : (
-              <DataTable data={cpuTableData} columns={cpuColumns} sortable resizable>
+              <DataTable data={cpuTableData} columns={cpuColumns} sortable resizable columnSizing={cpuColSizing} onColumnSizingChange={setCpuColSizing}>
                 <DataTable.Pagination defaultPageSize={10} />
               </DataTable>
             )}
@@ -846,7 +849,7 @@ export const TrafficAnalyzer = () => {
           <Flex flexDirection="column" gap={16} paddingTop={16}>
             <Heading level={6}>Memory % by Host - Top {topN} (sorted by Pearson Correlation)</Heading>
             {memByHost.isLoading ? <LoadingState /> : (
-              <DataTable data={memTableData} columns={memColumns} sortable resizable>
+              <DataTable data={memTableData} columns={memColumns} sortable resizable columnSizing={memColSizing} onColumnSizingChange={setMemColSizing}>
                 <DataTable.Pagination defaultPageSize={10} />
               </DataTable>
             )}
@@ -858,7 +861,7 @@ export const TrafficAnalyzer = () => {
           <Flex flexDirection="column" gap={16} paddingTop={16}>
             <Heading level={6}>Disk Free % by Host - Top {topN} (sorted by Pearson Correlation)</Heading>
             {diskByHost.isLoading ? <LoadingState /> : (
-              <DataTable data={diskTableData} columns={diskColumns} sortable resizable>
+              <DataTable data={diskTableData} columns={diskColumns} sortable resizable columnSizing={diskColSizing} onColumnSizingChange={setDiskColSizing}>
                 <DataTable.Pagination defaultPageSize={10} />
               </DataTable>
             )}
