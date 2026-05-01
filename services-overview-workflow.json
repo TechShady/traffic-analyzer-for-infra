@@ -1,0 +1,908 @@
+{
+  "title": "Services Overview",
+  "description": "This Workflow generates Services Overview reports and emails to the specified addresses.",
+  "ownerType": "USER",
+  "isPrivate": true,
+  "schemaVersion": 4,
+  "trigger": {},
+  "result": null,
+  "type": "STANDARD",
+  "input": {},
+  "hourlyExecutionLimit": 10,
+  "guide": "# Services Overview Report\nGet a comprehensive overview of your Services. This Workflow queries Grail and provides data to Dynatrace Intelligence to get recommendations. These recommendations are then sent to email(s) of your choice.\n\n# Setup\n1. Change emails (`to`, `cc`, `bcc`) to be an array of strings.\n2. Test with a manual Run, by clicking the `Run` button.\n3. If everything works as expected, change the [Trigger](?trigger=) to a schedule, e.g. Weekly, Daily, etc.",
+  "tasks": {
+    "service_requests_total": {
+      "name": "service_requests_total",
+      "input": {
+        "query": "timeseries requests = sum(dt.service.request.count),\n           by:{dt.entity.service},\n           from: @d-1d, to: @d\n| fieldsAdd service.name  = entityName(dt.entity.service)\n| fields timeframe,\n         interval,\n         service.name,\n         dt.entity.service,\n         requests\n| sort arraySum(requests) desc\n| limit 10"
+      },
+      "action": "dynatrace.automations:execute-dql-query",
+      "position": {
+        "x": -10,
+        "y": 1
+      },
+      "description": "Make use of Dynatrace Grail data in your workflow.",
+      "predecessors": []
+    },
+    "service_requests_total_prompt": {
+      "name": "service_requests_total_prompt",
+      "input": {
+        "config": "disabled",
+        "prompt": "Provide a report for the following use case:\n## Service - Requests Total Analysis Report\n",
+        "autoTrim": true,
+        "instruction": "Provide a Summary, Insights, Observations and Recommendations.",
+        "supplementary": "Format examples in tables instead of bulleted lists.\nWhere applicable convert units for readability, e.g. 1000000000 bytes is 1 TiB.\nWhere applicable show relative percentages, e.g. 100 used and 1000 allocatable is 10% utilized.\nUse this analysis:\n{{result(\"service_requests_total\")[\"records\"]}}\n"
+      },
+      "action": "dynatrace.davis.copilot.workflow.actions:davis-copilot",
+      "position": {
+        "x": -10,
+        "y": 2
+      },
+      "conditions": {
+        "states": {
+          "service_requests_total": "OK"
+        }
+      },
+      "description": "Prompt the Dynatrace Intelligence generative AI",
+      "predecessors": [
+        "service_requests_total"
+      ]
+    },
+    "service_latencyp50": {
+      "name": "service_latencyp50",
+      "input": {
+        "query": "timeseries latency_p50 = percentile(dt.service.request.response_time, 50),\n           by:{dt.entity.service},\n           from: @d-1d, to: @d\n| fieldsAdd service.name  = entityName(dt.entity.service)\n| fields timeframe,\n         interval,\n         service.name,\n         dt.entity.service,\n         latency_p50\n| sort arrayAvg(latency_p50) desc\n| limit 10"
+      },
+      "action": "dynatrace.automations:execute-dql-query",
+      "position": {
+        "x": -9,
+        "y": 1
+      },
+      "description": "Make use of Dynatrace Grail data in your workflow.",
+      "predecessors": []
+    },
+    "service_latencyp50_prompt": {
+      "name": "service_latencyp50_prompt",
+      "input": {
+        "config": "disabled",
+        "prompt": "Provide a report for the following use case:\n## Service - Latency_p50 Analysis Report\n",
+        "autoTrim": true,
+        "instruction": "Provide a Summary, Insights, Observations and Recommendations.",
+        "supplementary": "Format examples in tables instead of bulleted lists.\nWhere applicable convert units for readability, e.g. 1000000000 bytes is 1 TiB.\nWhere applicable show relative percentages, e.g. 100 used and 1000 allocatable is 10% utilized.\nUse this analysis:\n{{result(\"service_latencyp50\")[\"records\"]}}\n"
+      },
+      "action": "dynatrace.davis.copilot.workflow.actions:davis-copilot",
+      "position": {
+        "x": -9,
+        "y": 2
+      },
+      "conditions": {
+        "states": {
+          "service_latencyp50": "OK"
+        }
+      },
+      "description": "Prompt the Dynatrace Intelligence generative AI",
+      "predecessors": [
+        "service_latencyp50"
+      ]
+    },
+    "service_latencyp90": {
+      "name": "service_latencyp90",
+      "input": {
+        "query": "timeseries latency_p90 = percentile(dt.service.request.response_time, 90),\n           by:{dt.entity.service},\n           from: @d-1d, to: @d\n| fieldsAdd service.name  = entityName(dt.entity.service)\n| fields timeframe,\n         interval,\n         service.name,\n         dt.entity.service,\n         latency_p90\n| sort arrayAvg(latency_p90) desc\n| limit 10\n"
+      },
+      "action": "dynatrace.automations:execute-dql-query",
+      "position": {
+        "x": -8,
+        "y": 1
+      },
+      "description": "Make use of Dynatrace Grail data in your workflow.",
+      "predecessors": []
+    },
+    "service_latencyp90_prompt": {
+      "name": "service_latencyp90_prompt",
+      "input": {
+        "config": "disabled",
+        "prompt": "Provide a report for the following use case:\n## Service - Latency_p90 Analysis Report\n",
+        "autoTrim": true,
+        "instruction": "Provide a Summary, Insights, Observations and Recommendations.",
+        "supplementary": "Format examples in tables instead of bulleted lists.\nWhere applicable convert units for readability, e.g. 1000000000 bytes is 1 TiB.\nWhere applicable show relative percentages, e.g. 100 used and 1000 allocatable is 10% utilized.\nUse this analysis:\n{{result(\"service_latencyp90\")[\"records\"]}}\n"
+      },
+      "action": "dynatrace.davis.copilot.workflow.actions:davis-copilot",
+      "position": {
+        "x": -8,
+        "y": 2
+      },
+      "conditions": {
+        "states": {
+          "service_latencyp90": "OK"
+        }
+      },
+      "description": "Prompt the Dynatrace Intelligence generative AI",
+      "predecessors": [
+        "service_latencyp90"
+      ]
+    },
+    "service_failed_requests": {
+      "name": "service_failed_requests",
+      "input": {
+        "query": "timeseries errors = sum(dt.service.request.failure_count,default:0),\n           nonempty: true,\n           by:{dt.entity.service},\n           from: @d-1d, to: @d\n| fieldsAdd service.name  = entityName(dt.entity.service)\n| fields timeframe,\n         interval,\n         service.name,\n         dt.entity.service,\n         errors\n| sort arraySum(errors) desc\n| limit 10"
+      },
+      "action": "dynatrace.automations:execute-dql-query",
+      "position": {
+        "x": -7,
+        "y": 1
+      },
+      "description": "Make use of Dynatrace Grail data in your workflow.",
+      "predecessors": []
+    },
+    "service_failed_requests_prompt": {
+      "name": "service_failed_requests_prompt",
+      "input": {
+        "config": "disabled",
+        "prompt": "Provide a report for the following use case:\n## Service - Failed Requests Analysis Report\n",
+        "autoTrim": true,
+        "instruction": "Provide a Summary, Insights, Observations and Recommendations.",
+        "supplementary": "Format examples in tables instead of bulleted lists.\nWhere applicable convert units for readability, e.g. 1000000000 bytes is 1 TiB.\nWhere applicable show relative percentages, e.g. 100 used and 1000 allocatable is 10% utilized.\nUse this analysis:\n{{result(\"service_failed_requests\")[\"records\"]}}\n"
+      },
+      "action": "dynatrace.davis.copilot.workflow.actions:davis-copilot",
+      "position": {
+        "x": -7,
+        "y": 2
+      },
+      "conditions": {
+        "states": {
+          "service_failed_requests": "OK"
+        }
+      },
+      "description": "Prompt the Dynatrace Intelligence generative AI",
+      "predecessors": [
+        "service_failed_requests"
+      ]
+    },
+    "service_failed_rate": {
+      "name": "service_failed_rate",
+      "input": {
+        "query": "timeseries total = sum(dt.service.request.count,default:0),\n           nonempty: true,\n           by: {dt.entity.service},\n           from: @d-1d, to: @d\n| lookup \n[ \ntimeseries errors = sum(dt.service.request.failure_count,default:0),\n           nonempty: true,\n           by:{dt.entity.service}\n],\nsourceField:dt.entity.service, lookupField:dt.entity.service, prefix: \"request.\"\n| fieldsAdd failureRate = request.errors[] / total[] * 100\n| fieldsAdd service.name  = entityName(dt.entity.service)\n| fields  timeframe, \n          interval,\n          service.name,\n          dt.entity.service,\n          failureRate\n| sort arrayAvg(failureRate) desc          \n| limit 10"
+      },
+      "action": "dynatrace.automations:execute-dql-query",
+      "position": {
+        "x": -6,
+        "y": 1
+      },
+      "description": "Make use of Dynatrace Grail data in your workflow.",
+      "predecessors": []
+    },
+    "service_failed_rate_prompt": {
+      "name": "service_failed_rate_prompt",
+      "input": {
+        "config": "disabled",
+        "prompt": "Provide a report for the following use case:\n## Service - Failed Rate % Analysis Report\n",
+        "autoTrim": true,
+        "instruction": "Provide a Summary, Insights, Observations and Recommendations.",
+        "supplementary": "Format examples in tables instead of bulleted lists.\nWhere applicable convert units for readability, e.g. 1000000000 bytes is 1 TiB.\nWhere applicable show relative percentages, e.g. 100 used and 1000 allocatable is 10% utilized.\nUse this analysis:\n{{result(\"service_failed_rate\")[\"records\"]}}\n"
+      },
+      "action": "dynatrace.davis.copilot.workflow.actions:davis-copilot",
+      "position": {
+        "x": -6,
+        "y": 2
+      },
+      "conditions": {
+        "states": {
+          "service_failed_rate": "OK"
+        }
+      },
+      "description": "Prompt the Dynatrace Intelligence generative AI",
+      "predecessors": [
+        "service_failed_rate"
+      ]
+    },
+    "service_5xx_errors": {
+      "name": "service_5xx_errors",
+      "input": {
+        "query": "timeseries errors = sum(dt.service.request.count,default:0),\n           nonempty: true,\n           by:{dt.entity.service},\n           filter:\n           http.response.status_code >= 500 and http.response.status_code <= 599,\n           from: @d-1d, to: @d\n| fieldsAdd service.name  = entityName(dt.entity.service)\n| fields timeframe,\n         interval,\n         service.name,\n         dt.entity.service,\n         errors\n| sort arraySum(errors) desc\n| limit 10"
+      },
+      "action": "dynatrace.automations:execute-dql-query",
+      "position": {
+        "x": -5,
+        "y": 1
+      },
+      "description": "Make use of Dynatrace Grail data in your workflow.",
+      "predecessors": []
+    },
+    "service_5xx_errors_prompt": {
+      "name": "service_5xx_errors_prompt",
+      "input": {
+        "config": "disabled",
+        "prompt": "Provide a report for the following use case:\n## Service - 5xx Errors Analysis Report\n",
+        "autoTrim": true,
+        "instruction": "Provide a Summary, Insights, Observations and Recommendations.",
+        "supplementary": "Format examples in tables instead of bulleted lists.\nWhere applicable convert units for readability, e.g. 1000000000 bytes is 1 TiB.\nWhere applicable show relative percentages, e.g. 100 used and 1000 allocatable is 10% utilized.\nUse this analysis:\n{{result(\"service_5xx_errors\")[\"records\"]}}\n"
+      },
+      "action": "dynatrace.davis.copilot.workflow.actions:davis-copilot",
+      "position": {
+        "x": -5,
+        "y": 2
+      },
+      "conditions": {
+        "states": {
+          "service_5xx_errors": "OK"
+        }
+      },
+      "description": "Prompt the Dynatrace Intelligence generative AI",
+      "predecessors": [
+        "service_5xx_errors"
+      ]
+    },
+    "service_4xx_errors": {
+      "name": "service_4xx_errors",
+      "input": {
+        "query": "timeseries errors = sum(dt.service.request.count,default:0),\n           nonempty: true,\n           by:{dt.entity.service},\n           filter:\n           http.response.status_code >= 400 and http.response.status_code <= 499,\n           from: @d-1d, to: @d\n| fieldsAdd service.name  = entityName(dt.entity.service)\n| fields timeframe,\n         interval,\n         service.name,\n         dt.entity.service,\n         errors\n| sort arraySum(errors) desc\n| limit 10"
+      },
+      "action": "dynatrace.automations:execute-dql-query",
+      "position": {
+        "x": -4,
+        "y": 1
+      },
+      "description": "Make use of Dynatrace Grail data in your workflow.",
+      "predecessors": []
+    },
+    "service_4xx_errors_prompt": {
+      "name": "service_4xx_errors_prompt",
+      "input": {
+        "config": "disabled",
+        "prompt": "Provide a report for the following use case:\n## Service - 4xx Errors Analysis Report\n",
+        "autoTrim": true,
+        "instruction": "Provide a Summary, Insights, Observations and Recommendations.",
+        "supplementary": "Format examples in tables instead of bulleted lists.\nWhere applicable convert units for readability, e.g. 1000000000 bytes is 1 TiB.\nWhere applicable show relative percentages, e.g. 100 used and 1000 allocatable is 10% utilized.\nUse this analysis:\n{{result(\"service_4xx_errors\")[\"records\"]}}\n"
+      },
+      "action": "dynatrace.davis.copilot.workflow.actions:davis-copilot",
+      "position": {
+        "x": -4,
+        "y": 2
+      },
+      "conditions": {
+        "states": {
+          "service_4xx_errors": "OK"
+        }
+      },
+      "description": "Prompt the Dynatrace Intelligence generative AI",
+      "predecessors": [
+        "service_4xx_errors"
+      ]
+    },
+    "process_cpu_usage": {
+      "name": "process_cpu_usage",
+      "input": {
+        "query": "timeseries cpu = avg(dt.process.cpu.usage),\n           by: {dt.entity.process_group_instance,\n                dt.entity.host},\n           from: @d-1d, to: @d\n| fieldsAdd pgi = entityName(dt.entity.process_group_instance)\n| fieldsAdd host.name = entityName(dt.entity.host)\n| fields timeframe,\n         interval,\n         pgi,\n         dt.entity.process_group_instance,\n         host.name,\n         cpu\n| sort arrayAvg(cpu) desc\n| limit 10\n"
+      },
+      "action": "dynatrace.automations:execute-dql-query",
+      "position": {
+        "x": -3,
+        "y": 1
+      },
+      "description": "Make use of Dynatrace Grail data in your workflow.",
+      "predecessors": []
+    },
+    "process_cpu_usage_prompt": {
+      "name": "process_cpu_usage_prompt",
+      "input": {
+        "config": "disabled",
+        "prompt": "Provide a report for the following use case:\n## Process - CPU Usage % Analysis Report\n",
+        "autoTrim": true,
+        "instruction": "Provide a Summary, Insights, Observations and Recommendations.",
+        "supplementary": "Format examples in tables instead of bulleted lists.\nWhere applicable convert units for readability, e.g. 1000000000 bytes is 1 TiB.\nWhere applicable show relative percentages, e.g. 100 used and 1000 allocatable is 10% utilized.\nUse this analysis:\n{{result(\"process_cpu_usage\")[\"records\"]}}\n"
+      },
+      "action": "dynatrace.davis.copilot.workflow.actions:davis-copilot",
+      "position": {
+        "x": -3,
+        "y": 2
+      },
+      "conditions": {
+        "states": {
+          "process_cpu_usage": "OK"
+        }
+      },
+      "description": "Prompt the Dynatrace Intelligence generative AI",
+      "predecessors": [
+        "process_cpu_usage"
+      ]
+    },
+    "process_memory_usage": {
+      "name": "process_memory_usage",
+      "input": {
+        "query": "timeseries memory=avg(dt.process.memory.usage),\n           by: {dt.entity.process_group_instance, \n                dt.entity.host},\n           from: @d-1d, to: @d\n| fieldsAdd pgi = entityName(dt.entity.process_group_instance)\n| fieldsAdd host.name = entityName(dt.entity.host)\n| fields timeframe,\n         interval,\n         pgi,\n         dt.entity.process_group_instance,\n         host.name,\n         memory\n| sort arrayAvg(memory) desc\n| limit 10"
+      },
+      "action": "dynatrace.automations:execute-dql-query",
+      "position": {
+        "x": -2,
+        "y": 1
+      },
+      "description": "Make use of Dynatrace Grail data in your workflow.",
+      "predecessors": []
+    },
+    "process_memory_usage_prompt": {
+      "name": "process_memory_usage_prompt",
+      "input": {
+        "config": "disabled",
+        "prompt": "Provide a report for the following use case:\n## Process - Memory Usage % Analysis Report\n",
+        "autoTrim": true,
+        "instruction": "Provide a Summary, Insights, Observations and Recommendations.",
+        "supplementary": "Format examples in tables instead of bulleted lists.\nWhere applicable convert units for readability, e.g. 1000000000 bytes is 1 TiB.\nWhere applicable show relative percentages, e.g. 100 used and 1000 allocatable is 10% utilized.\nUse this analysis:\n{{result(\"process_memory_usage\")[\"records\"]}}\n"
+      },
+      "action": "dynatrace.davis.copilot.workflow.actions:davis-copilot",
+      "position": {
+        "x": -2,
+        "y": 2
+      },
+      "conditions": {
+        "states": {
+          "process_memory_usage": "OK"
+        }
+      },
+      "description": "Prompt the Dynatrace Intelligence generative AI",
+      "predecessors": [
+        "process_memory_usage"
+      ]
+    },
+    "process_memory_used": {
+      "name": "process_memory_used",
+      "input": {
+        "query": "timeseries memory = avg(dt.process.memory.working_set_size),\n           by: {dt.entity.process_group_instance, \n                dt.entity.host},\n           from: @d-1d, to: @d\n| fieldsAdd pgi = entityName(dt.entity.process_group_instance)\n| fieldsAdd host.name = entityName(dt.entity.host)\n| fields timeframe,\n         interval,\n         pgi,\n         dt.entity.process_group_instance,\n         host.name,\n         memory\n| sort arrayAvg(memory) desc\n| limit 10"
+      },
+      "action": "dynatrace.automations:execute-dql-query",
+      "position": {
+        "x": -1,
+        "y": 1
+      },
+      "description": "Make use of Dynatrace Grail data in your workflow.",
+      "predecessors": []
+    },
+    "process_memory_used_prompt": {
+      "name": "process_memory_used_prompt",
+      "input": {
+        "config": "disabled",
+        "prompt": "Provide a report for the following use case:\n## Process - Memory Used Analysis Report\n",
+        "autoTrim": true,
+        "instruction": "Provide a Summary, Insights, Observations and Recommendations.",
+        "supplementary": "Format examples in tables instead of bulleted lists.\nWhere applicable convert units for readability, e.g. 1000000000 bytes is 1 TiB.\nWhere applicable show relative percentages, e.g. 100 used and 1000 allocatable is 10% utilized.\nUse this analysis:\n{{result(\"process_memory_used\")[\"records\"]}}\n"
+      },
+      "action": "dynatrace.davis.copilot.workflow.actions:davis-copilot",
+      "position": {
+        "x": -1,
+        "y": 2
+      },
+      "conditions": {
+        "states": {
+          "process_memory_used": "OK"
+        }
+      },
+      "description": "Prompt the Dynatrace Intelligence generative AI",
+      "predecessors": [
+        "process_memory_used"
+      ]
+    },
+    "process_garbage_collection_time": {
+      "name": "process_garbage_collection_time",
+      "input": {
+        "query": "timeseries gc_time = avg(dt.runtime.jvm.gc.suspension_time),\n           by:{dt.entity.process_group_instance,dt.entity.host},\n           from: @d-1d, to: @d\n| append [timeseries gc_time = avg(dt.runtime.clr.gc.suspension_time),\n           by:{dt.entity.process_group_instance,dt.entity.host}         ]\n| append [timeseries gc_time = avg(dt.runtime.go.gc.suspension_time),\n           by:{dt.entity.process_group_instance,dt.entity.host}\n         ]\n| append [timeseries gc_time = avg(dt.runtime.nodejs.gc.suspension_time),\n           by:{dt.entity.process_group_instance,dt.entity.host}\n          ]\n| fieldsAdd pgi = entityName(dt.entity.process_group_instance)\n| fieldsAdd host.name = entityName(dt.entity.host)\n| fields  timeframe, \n          interval, \n          pgi,\n          dt.entity.process_group_instance,\n          host.name,\n          gc_time\n| sort arrayAvg(gc_time) desc\n| limit 10\n\n\n"
+      },
+      "action": "dynatrace.automations:execute-dql-query",
+      "position": {
+        "x": 0,
+        "y": 1
+      },
+      "description": "Make use of Dynatrace Grail data in your workflow.",
+      "predecessors": []
+    },
+    "process_garbage_collection_time_prompt": {
+      "name": "process_garbage_collection_time_prompt",
+      "input": {
+        "config": "disabled",
+        "prompt": "Provide a report for the following use case:\n## Process  - Garbage Collection Time % Analysis Report\n",
+        "autoTrim": true,
+        "instruction": "Provide a Summary, Insights, Observations and Recommendations.",
+        "supplementary": "Format examples in tables instead of bulleted lists.\nWhere applicable convert units for readability, e.g. 1000000000 bytes is 1 TiB.\nWhere applicable show relative percentages, e.g. 100 used and 1000 allocatable is 10% utilized.\nUse this analysis:\n{{result(\"process_garbage_collection_time\")[\"records\"]}}\n"
+      },
+      "action": "dynatrace.davis.copilot.workflow.actions:davis-copilot",
+      "position": {
+        "x": 0,
+        "y": 2
+      },
+      "conditions": {
+        "states": {
+          "process_garbage_collection_time": "OK"
+        }
+      },
+      "description": "Prompt the Dynatrace Intelligence generative AI",
+      "predecessors": [
+        "process_garbage_collection_time"
+      ]
+    },
+    "service_requests_by_status_code": {
+      "name": "service_requests_by_status_code",
+      "input": {
+        "query": "timeseries requests = sum(dt.service.request.count),\n           by:{http.response.status_code},\n           from: @d-1d, to: @d\n| fields timeframe,\n         interval,\n         http.response.status_code,\n         requests\n| sort http.response.status_code asc\n| limit 10"
+      },
+      "action": "dynatrace.automations:execute-dql-query",
+      "position": {
+        "x": 1,
+        "y": 1
+      },
+      "description": "Make use of Dynatrace Grail data in your workflow.",
+      "predecessors": []
+    },
+    "service_requests_by_status_code_prompt": {
+      "name": "service_requests_by_status_code_prompt",
+      "input": {
+        "config": "disabled",
+        "prompt": "Provide a report for the following use case:\n## Service - Requests by Status Code Analysis Report\n",
+        "autoTrim": true,
+        "instruction": "Provide a Summary, Insights, Observations and Recommendations.",
+        "supplementary": "Format examples in tables instead of bulleted lists.\nWhere applicable convert units for readability, e.g. 1000000000 bytes is 1 TiB.\nWhere applicable show relative percentages, e.g. 100 used and 1000 allocatable is 10% utilized.\nUse this analysis:\n{{result(\"service_requests_by_status_code\")[\"records\"]}}\n"
+      },
+      "action": "dynatrace.davis.copilot.workflow.actions:davis-copilot",
+      "position": {
+        "x": 1,
+        "y": 2
+      },
+      "conditions": {
+        "states": {
+          "service_requests_by_status_code": "OK"
+        }
+      },
+      "description": "Prompt the Dynatrace Intelligence generative AI",
+      "predecessors": [
+        "service_requests_by_status_code"
+      ]
+    },
+    "metrics_label": {
+      "name": "metrics_label",
+      "input": {
+        "query": "data record(a=\"METRICS\" )\n| limit 25"
+      },
+      "action": "dynatrace.automations:execute-dql-query",
+      "position": {
+        "x": 2,
+        "y": 1
+      },
+      "description": "Make use of Dynatrace Grail data in your workflow.",
+      "predecessors": []
+    },
+    "metrics_label_prompt": {
+      "name": "metrics_label_prompt",
+      "input": {
+        "config": "disabled",
+        "prompt": "Provide a report for the following use case:\n## Metrics Label Analysis Report\n",
+        "autoTrim": true,
+        "instruction": "Provide a Summary, Insights, Observations and Recommendations.",
+        "supplementary": "Format examples in tables instead of bulleted lists.\nWhere applicable convert units for readability, e.g. 1000000000 bytes is 1 TiB.\nWhere applicable show relative percentages, e.g. 100 used and 1000 allocatable is 10% utilized.\nUse this analysis:\n{{result(\"metrics_label\")[\"records\"]}}\n"
+      },
+      "action": "dynatrace.davis.copilot.workflow.actions:davis-copilot",
+      "position": {
+        "x": 2,
+        "y": 2
+      },
+      "conditions": {
+        "states": {
+          "metrics_label": "OK"
+        }
+      },
+      "description": "Prompt the Dynatrace Intelligence generative AI",
+      "predecessors": [
+        "metrics_label"
+      ]
+    },
+    "service_details": {
+      "name": "service_details",
+      "input": {
+        "query": "timeseries {latency_p50 = median(dt.service.request.response_time),\n           latency_p90 = percentile(dt.service.request.response_time, 90),\n           latency_p99 = percentile(dt.service.request.response_time, 99),\n           requests = sum(dt.service.request.count), \n           errors = sum(dt.service.request.failure_count)},\n           from: @d-1d, to: @d,\n           by:{dt.entity.service}\n\n| lookup [ timeseries latency_avg = avg(dt.service.request.response_time),\n           by:{dt.entity.service}],\n            sourceField:dt.entity.service, lookupField:dt.entity.service,\n            prefix: \"latencyAvg.\"\n\n\n\n| lookup [ timeseries http_5xx = sum(dt.service.request.count,default: 0.0),\n           by:{dt.entity.service},\n           filter: (http.response.status_code >= 500 and http.response.status_code <= 599)],\n            sourceField:dt.entity.service, lookupField:dt.entity.service,\n            prefix: \"http5xx.\"\n\n| lookup [ timeseries http_4xx = sum(dt.service.request.count,default: 0.0),\n           by:{dt.entity.service},\n           filter: (http.response.status_code >= 400 and http.response.status_code <= 499)],\n            sourceField:dt.entity.service, lookupField:dt.entity.service,\n            prefix: \"http4xx.\"\n\n| lookup [fetch dt.davis.problems, from:now()-7h, to:now()\n         | filter event.status==\"ACTIVE\" and dt.davis.is_duplicate==false\n         | expand affected_entity_ids\n         | summarize {Problems = countDistinct(display_id),\n               event.id = takeFirst(event.id),\n               event.kind = takeFirst(event.kind)}, \n               by:{affected_entity_ids}],\n  sourceField:dt.entity.service, lookupField:affected_entity_ids, \n  fields:{Problems, affected_entity_ids,event.id,event.kind}    \n\n| fieldsAdd Latency_Avg = arrayAvg(latencyAvg.latency_avg),\n            Latency_p50 = arrayAvg(latency_p50),\n            Latency_p90 = arrayAvg(latency_p90),\n            Latency_p99 = arrayAvg(latency_p99),\n            Requests = arraySum(requests), \n            Failures = arraySum(errors),\n           `5xx` = arraySum(http5xx.http_5xx),\n           `4xx` = arraySum(http4xx.http_4xx) \n| fieldsAdd FailureRate = (Failures/Requests) *100\n| fieldsAdd Service = entityName(dt.entity.service)\n| fieldsAdd dt.entity.process_group = entityAttr(dt.entity.service, \"runs_on\")\n| fieldsAdd dt.entity.process_group = dt.entity.process_group[dt.entity.process_group]\n| fields Status = if(Problems >= 0 , \"PROBLEM\",  else: \"HEALTHY\"),\n         Service,\n         dt.entity.service,\n         StatusSort = if(Problems > 0, 0, else: 1),\n         Requests,\n         Latency_Avg,\n         Latency_p50,\n         Latency_p90,\n         Latency_p99,\n         FailureRate,\n         Failures,\n        `5xx` = if(isNull(`5xx`), 0, else:`5xx`),\n        `4xx` = if(isNull(`4xx`), 0, else:`4xx`),\n         event.id,\n         event.kind\n| sort StatusSort asc\n| fieldsRemove StatusSort\n| limit 100"
+      },
+      "action": "dynatrace.automations:execute-dql-query",
+      "position": {
+        "x": 3,
+        "y": 1
+      },
+      "description": "Make use of Dynatrace Grail data in your workflow.",
+      "predecessors": []
+    },
+    "service_details_prompt": {
+      "name": "service_details_prompt",
+      "input": {
+        "config": "disabled",
+        "prompt": "Provide a report for the following use case:\n## Service Details Analysis Report\n",
+        "autoTrim": true,
+        "instruction": "Provide a Summary, Insights, Observations and Recommendations.",
+        "supplementary": "Format examples in tables instead of bulleted lists.\nWhere applicable convert units for readability, e.g. 1000000000 bytes is 1 TiB.\nWhere applicable show relative percentages, e.g. 100 used and 1000 allocatable is 10% utilized.\nUse this analysis:\n{{result(\"service_details\")[\"records\"]}}\n"
+      },
+      "action": "dynatrace.davis.copilot.workflow.actions:davis-copilot",
+      "position": {
+        "x": 3,
+        "y": 2
+      },
+      "conditions": {
+        "states": {
+          "service_details": "OK"
+        }
+      },
+      "description": "Prompt the Dynatrace Intelligence generative AI",
+      "predecessors": [
+        "service_details"
+      ]
+    },
+    "service_summary_label": {
+      "name": "service_summary_label",
+      "input": {
+        "query": "data record(a=\"SERVICE SUMMARY\")\n| limit 25"
+      },
+      "action": "dynatrace.automations:execute-dql-query",
+      "position": {
+        "x": 4,
+        "y": 1
+      },
+      "description": "Make use of Dynatrace Grail data in your workflow.",
+      "predecessors": []
+    },
+    "service_summary_label_prompt": {
+      "name": "service_summary_label_prompt",
+      "input": {
+        "config": "disabled",
+        "prompt": "Provide a report for the following use case:\n## Service Summary Label Analysis Report\n",
+        "autoTrim": true,
+        "instruction": "Provide a Summary, Insights, Observations and Recommendations.",
+        "supplementary": "Format examples in tables instead of bulleted lists.\nWhere applicable convert units for readability, e.g. 1000000000 bytes is 1 TiB.\nWhere applicable show relative percentages, e.g. 100 used and 1000 allocatable is 10% utilized.\nUse this analysis:\n{{result(\"service_summary_label\")[\"records\"]}}\n"
+      },
+      "action": "dynatrace.davis.copilot.workflow.actions:davis-copilot",
+      "position": {
+        "x": 4,
+        "y": 2
+      },
+      "conditions": {
+        "states": {
+          "service_summary_label": "OK"
+        }
+      },
+      "description": "Prompt the Dynatrace Intelligence generative AI",
+      "predecessors": [
+        "service_summary_label"
+      ]
+    },
+    "k8s_workload_cpu_usage": {
+      "name": "k8s_workload_cpu_usage",
+      "input": {
+        "query": "timeseries cpu=avg(dt.kubernetes.container.cpu_usage),  \n           by: {k8s.namespace.name, \n                dt.entity.kubernetes_cluster, \n                dt.entity.cloud_application_namespace, \n                dt.entity.cloud_application},\n           from: @d-1d, to: @d\n| fieldsAdd workload = entityName(dt.entity.cloud_application)\n| fields timeframe,\n         interval,\n         workload,\n         cpu,\n         dt.entity.cloud_application,\n         k8s.namespace.name,\n         dt.entity.cloud_application_namespace,\n         dt.entity.kubernetes_cluster\n| sort arrayAvg(cpu) desc\n| limit 10"
+      },
+      "action": "dynatrace.automations:execute-dql-query",
+      "position": {
+        "x": 5,
+        "y": 1
+      },
+      "description": "Make use of Dynatrace Grail data in your workflow.",
+      "predecessors": []
+    },
+    "k8s_workload_cpu_usage_prompt": {
+      "name": "k8s_workload_cpu_usage_prompt",
+      "input": {
+        "config": "disabled",
+        "prompt": "Provide a report for the following use case:\n## K8s Workload - CPU Usage Analysis Report\n",
+        "autoTrim": true,
+        "instruction": "Provide a Summary, Insights, Observations and Recommendations.",
+        "supplementary": "Format examples in tables instead of bulleted lists.\nWhere applicable convert units for readability, e.g. 1000000000 bytes is 1 TiB.\nWhere applicable show relative percentages, e.g. 100 used and 1000 allocatable is 10% utilized.\nUse this analysis:\n{{result(\"k8s_workload_cpu_usage\")[\"records\"]}}\n"
+      },
+      "action": "dynatrace.davis.copilot.workflow.actions:davis-copilot",
+      "position": {
+        "x": 5,
+        "y": 2
+      },
+      "conditions": {
+        "states": {
+          "k8s_workload_cpu_usage": "OK"
+        }
+      },
+      "description": "Prompt the Dynatrace Intelligence generative AI",
+      "predecessors": [
+        "k8s_workload_cpu_usage"
+      ]
+    },
+    "k8s_workload_memory_usage": {
+      "name": "k8s_workload_memory_usage",
+      "input": {
+        "query": "timeseries memory=avg(dt.kubernetes.container.memory_working_set),\n           limits=avg(dt.kubernetes.container.limits_memory),\n           by: {k8s.namespace.name, \n                dt.entity.kubernetes_cluster, \n                dt.entity.cloud_application_namespace, \n                dt.entity.cloud_application },\n           from: @d-1d, to: @d\n| fieldsAdd workload = entityName(dt.entity.cloud_application)\n| fields timeframe,\n         interval,\n         workload,\n         memory,\n         limits,\n         dt.entity.cloud_application,\n         k8s.namespace.name,\n         dt.entity.cloud_application_namespace,\n         dt.entity.kubernetes_cluster\n| sort arrayAvg(memory) desc\n| limit 10"
+      },
+      "action": "dynatrace.automations:execute-dql-query",
+      "position": {
+        "x": 6,
+        "y": 1
+      },
+      "description": "Make use of Dynatrace Grail data in your workflow.",
+      "predecessors": []
+    },
+    "k8s_workload_memory_usage_prompt": {
+      "name": "k8s_workload_memory_usage_prompt",
+      "input": {
+        "config": "disabled",
+        "prompt": "Provide a report for the following use case:\n## K8s Workload - Memory Usage Analysis Report\n",
+        "autoTrim": true,
+        "instruction": "Provide a Summary, Insights, Observations and Recommendations.",
+        "supplementary": "Format examples in tables instead of bulleted lists.\nWhere applicable convert units for readability, e.g. 1000000000 bytes is 1 TiB.\nWhere applicable show relative percentages, e.g. 100 used and 1000 allocatable is 10% utilized.\nUse this analysis:\n{{result(\"k8s_workload_memory_usage\")[\"records\"]}}\n"
+      },
+      "action": "dynatrace.davis.copilot.workflow.actions:davis-copilot",
+      "position": {
+        "x": 6,
+        "y": 2
+      },
+      "conditions": {
+        "states": {
+          "k8s_workload_memory_usage": "OK"
+        }
+      },
+      "description": "Prompt the Dynatrace Intelligence generative AI",
+      "predecessors": [
+        "k8s_workload_memory_usage"
+      ]
+    },
+    "services_current_status": {
+      "name": "services_current_status",
+      "input": {
+        "query": "fetch dt.entity.service, from: @d-1d, to: @d\n| filter serviceType != \"DATABASE_SERVICE\"\n| lookup [\n  fetch dt.davis.problems\n  | filter event.status == \"ACTIVE\"\n  | expand affected_entity_ids\n], sourceField:id, lookupField:affected_entity_ids\n| fieldsAdd affected = if(isNotNull(lookup.affected_entity_ids), \"Problem\", else: \"Healthy\")\n| fields affected, \n         id, \n         entity.name, \n         event.id = lookup.event.id, \n         event.kind = lookup.event.kind\n| sort affected desc\n| limit 25"
+      },
+      "action": "dynatrace.automations:execute-dql-query",
+      "position": {
+        "x": 7,
+        "y": 1
+      },
+      "description": "Make use of Dynatrace Grail data in your workflow.",
+      "predecessors": []
+    },
+    "services_current_status_prompt": {
+      "name": "services_current_status_prompt",
+      "input": {
+        "config": "disabled",
+        "prompt": "Provide a report for the following use case:\n## Services  (Current Status) Analysis Report\n",
+        "autoTrim": true,
+        "instruction": "Provide a Summary, Insights, Observations and Recommendations.",
+        "supplementary": "Format examples in tables instead of bulleted lists.\nWhere applicable convert units for readability, e.g. 1000000000 bytes is 1 TiB.\nWhere applicable show relative percentages, e.g. 100 used and 1000 allocatable is 10% utilized.\nUse this analysis:\n{{result(\"services_current_status\")[\"records\"]}}\n"
+      },
+      "action": "dynatrace.davis.copilot.workflow.actions:davis-copilot",
+      "position": {
+        "x": 7,
+        "y": 2
+      },
+      "conditions": {
+        "states": {
+          "services_current_status": "OK"
+        }
+      },
+      "description": "Prompt the Dynatrace Intelligence generative AI",
+      "predecessors": [
+        "services_current_status"
+      ]
+    },
+    "problems_list": {
+      "name": "problems_list",
+      "input": {
+        "query": "fetch dt.davis.problems, from: @d-1d, to: @d\n| filter `dt.davis.is_duplicate` == false\n| sort timestamp desc\n| expand affected_entity_ids\n| lookup [fetch dt.entity.service], sourceField:affected_entity_ids, lookupField: id, prefix:\"lookup.affected.entity.services\"\n| lookup [fetch dt.entity.process_group_instance], sourceField:affected_entity_ids, lookupField: id, prefix:\"lookup.affected.entity.pgi\"\n| lookup [fetch dt.entity.application], sourceField:affected_entity_ids, lookupField: id, prefix:\"lookup.affected.entity.applications\"\n| lookup [fetch dt.entity.mobile_application], sourceField:affected_entity_ids, lookupField: id, prefix:\"lookup.affected.entity.mobile\"\n| lookup [fetch dt.entity.custom_application], sourceField:affected_entity_ids, lookupField: id, prefix:\"lookup.affected.entity.customapplication\"\n| lookup [fetch dt.entity.cloud_application], sourceField:affected_entity_ids, lookupField: id, prefix:\"lookup.affected.entity.cloudapplication\"\n| lookup [fetch dt.entity.synthetic_test], sourceField:affected_entity_ids, lookupField: id, prefix:\"lookup.affected.entity.synthetictest\"\n| lookup [fetch dt.entity.http_check], sourceField:affected_entity_ids, lookupField: id, prefix:\"lookup.affected.entity.httpcheck\"\n| lookup [fetch dt.entity.multiprotocol_monitor], sourceField:affected_entity_ids, lookupField: id, prefix:\"lookup.affected.entity.multiprotocolmonitor\"\n| lookup [fetch dt.entity.kubernetes_cluster], sourceField:affected_entity_ids, lookupField: id, prefix:\"lookup.affected.entity.kubernetescluster\"\n| lookup [fetch dt.entity.host], sourceField:affected_entity_ids, lookupField: id, prefix:\"lookup.affected.entity.hosts\"\n| lookup [fetch dt.entity.custom_device], sourceField:affected_entity_ids, lookupField: id, prefix:\"lookup.affected.entity.customdevices\"\n| lookup [fetch dt.entity.hypervisor], sourceField:affected_entity_ids, lookupField: id, prefix:\"lookup.affected.entity.hypervisor\"\n| lookup [fetch dt.entity.environment], sourceField:affected_entity_ids, lookupField: id, prefix:\"lookup.affected.entity.environment\"\n| summarize {startTime = takeFirst(event.start),\n            endTime = takeFirst(event.end),\n            problemClosedDuration = takeFirst(resolved_problem_duration),\n            status = takeFirst(event.status),\n            event.name = takeFirst(event.name),\n            severityLevel = takeFirst(event.category),\n            affected = takeFirst(affected_entity_ids),\n            rootCause = takeFirst(root_cause_entity_name),\n            dt.davis.is_duplicate = takeFirst(dt.davis.is_duplicate),\n            affectedServices = collectDistinct(lookup.affected.entity.servicesentity.name),\n            affectedPGI = collectDistinct(lookup.affected.entity.pgientity.name),\n            affectedApplications = collectDistinct(lookup.affected.entity.applicationsentity.name),\n            affectedMobile = collectDistinct(lookup.affected.entity.mobileentity.name),\n            affectedCustomApplication = collectDistinct(lookup.affected.entity.customapplicationentity.name),\n            affectedCloudApplication = collectDistinct(lookup.affected.entity.cloudapplicationentity.name),\n            affectedSyntheticTest = collectDistinct(lookup.affected.entity.synthetictestentity.name),\n            affectedHttpCheck = collectDistinct(lookup.affected.entity.httpcheckentity.name),\n            affectedMultiprotocolMonitor = collectDistinct(lookup.affected.entity.multiprotocolmonitorentity.name),\n            affectedKubernetesCluster = collectDistinct(lookup.affected.entity.kubernetesclusterentity.name),\n            affectedHosts = collectDistinct(lookup.affected.entity.hostsentity.name),\n            affectedCustomDevices = collectDistinct(lookup.affected.entity.customdevicesentity.name),\n            affectedHypervisor = collectDistinct(lookup.affected.entity.hypervisorentity.name),\n            affectedEnvironment = collectDistinct(lookup.affected.entity.environmententity.name),\n            event.id = takeFirst(event.id)}, \n            by:{display_id, event.kind}\n| fieldsAdd currentTime = toTimestamp(now())\n| fieldsAdd Description = concat(display_id,\" - \",event.name)\n| fields Status = status,       \n         Description,\n         Affected = arrayRemoveNulls(arrayConcat(affectedApplications,affectedMobile,affectedCustomApplication,affectedCloudApplication,affectedSyntheticTest,affectedHttpCheck,affectedServices,affectedPGI,affectedKubernetesCluster,affectedHosts,affectedHypervisor,affectedCustomDevices,affectedEnvironment,affectedMultiprotocolMonitor)),\n         RootCause = if(isNotNull(rootCause), rootCause, else:\"\"),\n         StartTime = startTime,\n         EndTime =  if((status == \"ACTIVE\"),\"In Progress\", \n                    else:if((status == \"CLOSED\"),endTime)),   \n         Duration = if((status == \"CLOSED\"),problemClosedDuration,\n                    else:if((status == \"ACTIVE\"), currentTime-startTime)),\n         event.id,\n         event.kind\n| sort StartTime, direction:\"descending\"\n| sort Status, direction:\"ascending\"\n| limit 25"
+      },
+      "action": "dynatrace.automations:execute-dql-query",
+      "position": {
+        "x": 8,
+        "y": 1
+      },
+      "description": "Make use of Dynatrace Grail data in your workflow.",
+      "predecessors": []
+    },
+    "problems_list_prompt": {
+      "name": "problems_list_prompt",
+      "input": {
+        "config": "disabled",
+        "prompt": "Provide a report for the following use case:\n## Problems List Analysis Report\n",
+        "autoTrim": true,
+        "instruction": "Provide a Summary, Insights, Observations and Recommendations.",
+        "supplementary": "Format examples in tables instead of bulleted lists.\nWhere applicable convert units for readability, e.g. 1000000000 bytes is 1 TiB.\nWhere applicable show relative percentages, e.g. 100 used and 1000 allocatable is 10% utilized.\nUse this analysis:\n{{result(\"problems_list\")[\"records\"]}}\n"
+      },
+      "action": "dynatrace.davis.copilot.workflow.actions:davis-copilot",
+      "position": {
+        "x": 8,
+        "y": 2
+      },
+      "conditions": {
+        "states": {
+          "problems_list": "OK"
+        }
+      },
+      "description": "Prompt the Dynatrace Intelligence generative AI",
+      "predecessors": [
+        "problems_list"
+      ]
+    },
+    "requests_summary_label": {
+      "name": "requests_summary_label",
+      "input": {
+        "query": "data record(a=\"REQUESTS SUMMARY\")\n| limit 25"
+      },
+      "action": "dynatrace.automations:execute-dql-query",
+      "position": {
+        "x": 9,
+        "y": 1
+      },
+      "description": "Make use of Dynatrace Grail data in your workflow.",
+      "predecessors": []
+    },
+    "requests_summary_label_prompt": {
+      "name": "requests_summary_label_prompt",
+      "input": {
+        "config": "disabled",
+        "prompt": "Provide a report for the following use case:\n## Requests Summary Label Analysis Report\n",
+        "autoTrim": true,
+        "instruction": "Provide a Summary, Insights, Observations and Recommendations.",
+        "supplementary": "Format examples in tables instead of bulleted lists.\nWhere applicable convert units for readability, e.g. 1000000000 bytes is 1 TiB.\nWhere applicable show relative percentages, e.g. 100 used and 1000 allocatable is 10% utilized.\nUse this analysis:\n{{result(\"requests_summary_label\")[\"records\"]}}\n"
+      },
+      "action": "dynatrace.davis.copilot.workflow.actions:davis-copilot",
+      "position": {
+        "x": 9,
+        "y": 2
+      },
+      "conditions": {
+        "states": {
+          "requests_summary_label": "OK"
+        }
+      },
+      "description": "Prompt the Dynatrace Intelligence generative AI",
+      "predecessors": [
+        "requests_summary_label"
+      ]
+    },
+    "request_details": {
+      "name": "request_details",
+      "input": {
+        "query": "fetch spans, from: @d-1d, to: @d, samplingRatio: 1, scanLimitGBytes: 50\n\t\n| filter request.is_root_span == true AND isNotNull(endpoint.name) \n\t\n\t| fieldsAdd sampling.probability = (power(2, 56) - coalesce(sampling.threshold, 0)) * power(2, -56), \n            sampling.multiplicity = 1/sampling.probability, \n            multiplicity = coalesce(sampling.multiplicity, 1) * coalesce(aggregation.count, 1) * dt.system.sampling_ratio\n\t\n\t| fieldsAdd request.status_code = if(request.is_failed, \"Failure\", else: \"Success\")\n\t\n| fieldsAdd aggregation.duration_avg = coalesce(aggregation.duration_sum/aggregation.count, duration)\n\t| fieldsAdd dt.entity.service.entity.name = entityAttr(dt.entity.service, \"entity.name\")\n| summarize {\n\t    dt.entity.service = takeFirst(dt.entity.service),\n\t    Latency_Avg = sum(aggregation.duration_avg*multiplicity)/sum(multiplicity),\n\t    Latency_p50 = percentile(duration, 50),\n\t    Latency_p90 = percentile(duration, 90),\n\t    Latency_p99 = percentile(duration, 99),\n\t    Requests = sum(`multiplicity`),\n\t    Failures = sum(if(request.status_code == \"Failure\", `multiplicity`, else: 0)),\n\t    FailureRate = round(toDouble(sum(if(request.status_code == \"Failure\", `multiplicity`, else: 0)) / sum(`multiplicity`)), decimals: 3),\n        `5xx` = sum(if(http.response.status_code >= 500 and http.response.status_code <= 599, `multiplicity`, else: 0)),\n        `4xx` = sum(if(http.response.status_code >= 400 and http.response.status_code <= 499, `multiplicity`, else: 0))\n        }, by: {\n\t    dt.entity.service.entity.name,\n\t    endpoint.name,\n\t    dt.system.sampling_ratio\n\t  }\n| fieldsAdd Service = entityName(dt.entity.service)\n| filter isNotNull(endpoint.name)\n| fields Service,\n         Request = endpoint.name,\n         Requests,         \n         Latency_Avg,\n         Latency_p50,\n         Latency_p90,\n         Latency_p99,\n         FailureRate = FailureRate * 100,\n         Failures,\n         `5xx`,\n         `4xx`\n| sort Requests desc  \n| limit 100"
+      },
+      "action": "dynatrace.automations:execute-dql-query",
+      "position": {
+        "x": 10,
+        "y": 1
+      },
+      "description": "Make use of Dynatrace Grail data in your workflow.",
+      "predecessors": []
+    },
+    "request_details_prompt": {
+      "name": "request_details_prompt",
+      "input": {
+        "config": "disabled",
+        "prompt": "Provide a report for the following use case:\n## Request Details Analysis Report\n",
+        "autoTrim": true,
+        "instruction": "Provide a Summary, Insights, Observations and Recommendations.",
+        "supplementary": "Format examples in tables instead of bulleted lists.\nWhere applicable convert units for readability, e.g. 1000000000 bytes is 1 TiB.\nWhere applicable show relative percentages, e.g. 100 used and 1000 allocatable is 10% utilized.\nUse this analysis:\n{{result(\"request_details\")[\"records\"]}}\n"
+      },
+      "action": "dynatrace.davis.copilot.workflow.actions:davis-copilot",
+      "position": {
+        "x": 10,
+        "y": 2
+      },
+      "conditions": {
+        "states": {
+          "request_details": "OK"
+        }
+      },
+      "description": "Prompt the Dynatrace Intelligence generative AI",
+      "predecessors": [
+        "request_details"
+      ]
+    },
+    "overall_prompt": {
+      "name": "overall_prompt",
+      "input": {
+        "config": "disabled",
+        "prompt": "Provide a report for the following use case:\n## Services Overview Dashboard Executive Report",
+        "autoTrim": true,
+        "instruction": "Provide a Summary, Insights, Observations and Recommendations.",
+        "supplementary": "Format examples in tables instead of bulleted lists.\nUse this analysis:\n{{result(\"service_requests_total_prompt\").text}}\n{{result(\"service_latencyp50_prompt\").text}}\n{{result(\"service_latencyp90_prompt\").text}}\n{{result(\"service_failed_requests_prompt\").text}}\n{{result(\"service_failed_rate_prompt\").text}}\n{{result(\"service_5xx_errors_prompt\").text}}\n{{result(\"service_4xx_errors_prompt\").text}}\n{{result(\"process_cpu_usage_prompt\").text}}\n{{result(\"process_memory_usage_prompt\").text}}\n{{result(\"process_memory_used_prompt\").text}}\n{{result(\"process_garbage_collection_time_prompt\").text}}\n{{result(\"service_requests_by_status_code_prompt\").text}}\n{{result(\"metrics_label_prompt\").text}}\n{{result(\"service_details_prompt\").text}}\n{{result(\"service_summary_label_prompt\").text}}\n{{result(\"k8s_workload_cpu_usage_prompt\").text}}\n{{result(\"k8s_workload_memory_usage_prompt\").text}}\n{{result(\"services_current_status_prompt\").text}}\n{{result(\"problems_list_prompt\").text}}\n{{result(\"requests_summary_label_prompt\").text}}\n{{result(\"request_details_prompt\").text}}\n\n"
+      },
+      "action": "dynatrace.davis.copilot.workflow.actions:davis-copilot",
+      "position": {
+        "x": 0,
+        "y": 3
+      },
+      "conditions": {
+        "states": {
+          "service_requests_total_prompt": "OK",
+          "service_latencyp50_prompt": "OK",
+          "service_latencyp90_prompt": "OK",
+          "service_failed_requests_prompt": "OK",
+          "service_failed_rate_prompt": "OK",
+          "service_5xx_errors_prompt": "OK",
+          "service_4xx_errors_prompt": "OK",
+          "process_cpu_usage_prompt": "OK",
+          "process_memory_usage_prompt": "OK",
+          "process_memory_used_prompt": "OK",
+          "process_garbage_collection_time_prompt": "OK",
+          "service_requests_by_status_code_prompt": "OK",
+          "metrics_label_prompt": "OK",
+          "service_details_prompt": "OK",
+          "service_summary_label_prompt": "OK",
+          "k8s_workload_cpu_usage_prompt": "OK",
+          "k8s_workload_memory_usage_prompt": "OK",
+          "services_current_status_prompt": "OK",
+          "problems_list_prompt": "OK",
+          "requests_summary_label_prompt": "OK",
+          "request_details_prompt": "OK"
+        }
+      },
+      "description": "Prompt the Dynatrace Intelligence generative AI",
+      "predecessors": [
+        "service_requests_total_prompt",
+        "service_latencyp50_prompt",
+        "service_latencyp90_prompt",
+        "service_failed_requests_prompt",
+        "service_failed_rate_prompt",
+        "service_5xx_errors_prompt",
+        "service_4xx_errors_prompt",
+        "process_cpu_usage_prompt",
+        "process_memory_usage_prompt",
+        "process_memory_used_prompt",
+        "process_garbage_collection_time_prompt",
+        "service_requests_by_status_code_prompt",
+        "metrics_label_prompt",
+        "service_details_prompt",
+        "service_summary_label_prompt",
+        "k8s_workload_cpu_usage_prompt",
+        "k8s_workload_memory_usage_prompt",
+        "services_current_status_prompt",
+        "problems_list_prompt",
+        "requests_summary_label_prompt",
+        "request_details_prompt"
+      ]
+    },
+    "email_exec_report": {
+      "name": "email_exec_report",
+      "input": {
+        "cc": [],
+        "to": [
+          "john.kelly@dynatrace.com"
+        ],
+        "bcc": [],
+        "content": "#\n# Dashboard Overall Summary \n#\n{{result(\"overall_prompt\").text}}\n",
+        "subject": "Dynatrace Services Overview Dashboard Executive Summary Report"
+      },
+      "action": "dynatrace.email:send-email",
+      "position": {
+        "x": 1,
+        "y": 4
+      },
+      "conditions": {
+        "states": {
+          "overall_prompt": "OK"
+        }
+      },
+      "description": "Send email",
+      "predecessors": [
+        "overall_prompt"
+      ]
+    },
+    "email_dashboard_report": {
+      "name": "email_dashboard_report",
+      "input": {
+        "cc": [],
+        "to": [
+          "john.kelly@dynatrace.com"
+        ],
+        "bcc": [],
+        "content": "#\n# Dashboard Overall Summary\n#\n{{result(\"overall_prompt\").text}}\n#\n# Dashboard Tile Summary\n#\n{{result(\"service_requests_total_prompt\").text}}\n{{result(\"service_latencyp50_prompt\").text}}\n{{result(\"service_latencyp90_prompt\").text}}\n{{result(\"service_failed_requests_prompt\").text}}\n{{result(\"service_failed_rate_prompt\").text}}\n{{result(\"service_5xx_errors_prompt\").text}}\n{{result(\"service_4xx_errors_prompt\").text}}\n{{result(\"process_cpu_usage_prompt\").text}}\n{{result(\"process_memory_usage_prompt\").text}}\n{{result(\"process_memory_used_prompt\").text}}\n{{result(\"process_garbage_collection_time_prompt\").text}}\n{{result(\"service_requests_by_status_code_prompt\").text}}\n{{result(\"metrics_label_prompt\").text}}\n{{result(\"service_details_prompt\").text}}\n{{result(\"service_summary_label_prompt\").text}}\n{{result(\"k8s_workload_cpu_usage_prompt\").text}}\n{{result(\"k8s_workload_memory_usage_prompt\").text}}\n{{result(\"services_current_status_prompt\").text}}\n{{result(\"problems_list_prompt\").text}}\n{{result(\"requests_summary_label_prompt\").text}}\n{{result(\"request_details_prompt\").text}}\n",
+        "subject": "Dynatrace Services Overview Dashboard Tile Report"
+      },
+      "action": "dynatrace.email:send-email",
+      "position": {
+        "x": -1,
+        "y": 4
+      },
+      "conditions": {
+        "states": {
+          "overall_prompt": "OK"
+        }
+      },
+      "description": "Send email",
+      "predecessors": [
+        "overall_prompt"
+      ]
+    }
+  }
+}

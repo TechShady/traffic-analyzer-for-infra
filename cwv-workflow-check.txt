@@ -1,0 +1,162 @@
+﻿Total tasks: 27
+
+=== DQL tasks ===
+Count: 12
+  cls | limits: [limit 50] | has_dollar: false | user.events: true | user_events: false | timeframe: "from: @d-1d, to: @d"
+  inp | limits: [limit 50] | has_dollar: false | user.events: true | user_events: false | timeframe: "from: @d-1d, to: @d"
+  lcp | limits: [limit 50] | has_dollar: false | user.events: true | user_events: false | timeframe: "from: @d-1d, to: @d"
+  error_count | limits: [limit 50] | has_dollar: false | user.events: true | user_events: false | timeframe: "from: @d-1d, to: @d"
+  page_load_time | limits: [limit 50] | has_dollar: false | user.events: true | user_events: false | timeframe: "from: @d-1d, to: @d"
+  navigations | limits: [limit 50] | has_dollar: false | user.events: true | user_events: false | timeframe: "from: @d-1d, to: @d"
+  user_actions | limits: [limit 50] | has_dollar: false | user.events: true | user_events: false | timeframe: "from: @d-1d, to: @d"
+  cwv_health | limits: [limit 50] | has_dollar: false | user.events: true | user_events: false | timeframe: "from: @d-1d, to: @d"
+  applications | limits: [limit 50] | has_dollar: false | user.events: true | user_events: false | timeframe: "from: @d-1d, to: @d"
+  lcp_trend | limits: [limit 50] | has_dollar: false | user.events: true | user_events: false | timeframe: "from: @d-1d, to: @d"
+  inp_trend | limits: [limit 50] | has_dollar: false | user.events: true | user_events: false | timeframe: "from: @d-1d, to: @d"
+  cls_trend | limits: [limit 50] | has_dollar: false | user.events: true | user_events: false | timeframe: "from: @d-1d, to: @d"
+
+=== Prompt tasks ===
+Count: 13
+  cls_prompt | predecessors: [cls] | conditions: [cls]
+  inp_prompt | predecessors: [inp] | conditions: [inp]
+  lcp_prompt | predecessors: [lcp] | conditions: [lcp]
+  error_count_prompt | predecessors: [error_count] | conditions: [error_count]
+  page_load_time_prompt | predecessors: [page_load_time] | conditions: [page_load_time]
+  navigations_prompt | predecessors: [navigations] | conditions: [navigations]
+  user_actions_prompt | predecessors: [user_actions] | conditions: [user_actions]
+  cwv_health_prompt | predecessors: [cwv_health] | conditions: [cwv_health]
+  applications_prompt | predecessors: [applications] | conditions: [applications]
+  lcp_trend_prompt | predecessors: [lcp_trend] | conditions: [lcp_trend]
+  inp_trend_prompt | predecessors: [inp_trend] | conditions: [inp_trend]
+  cls_trend_prompt | predecessors: [cls_trend] | conditions: [cls_trend]
+  overall_prompt | predecessors: [cls_prompt,inp_prompt,lcp_prompt,error_count_prompt,page_load_time_prompt,navigations_prompt,user_actions_prompt,cwv_health_prompt,applications_prompt,lcp_trend_prompt,inp_trend_prompt,cls_trend_prompt] | conditions: [cls_prompt,inp_prompt,lcp_prompt,error_count_prompt,page_load_time_prompt,navigations_prompt,user_actions_prompt,cwv_health_prompt,applications_prompt,lcp_trend_prompt,inp_trend_prompt,cls_trend_prompt]
+
+=== Email tasks ===
+Count: 2
+  email_exec_report | to: ["john.kelly@dynatrace.com"] | predecessors: [overall_prompt]
+  email_dashboard_report | to: ["john.kelly@dynatrace.com"] | predecessors: [overall_prompt]
+
+=== Overall prompt ===
+predecessors count: 12
+conditions count: 12
+supplementary refs count: 12
+
+=== Balance check ===
+Balance check complete.
+
+=== Full DQL Queries ===
+
+--- cls ---
+fetch user.events
+| filter characteristics.has_page_summary
+| makeTimeseries  
+  p75CLS_scalar = percentile(web_vitals.cumulative_layout_shift, 75, scalar: true)
+| limit 50
+
+--- inp ---
+fetch user.events
+| filter characteristics.has_page_summary
+| makeTimeseries  
+  p75INP_scalar = percentile(web_vitals.interaction_to_next_paint, 75, scalar:true)
+| limit 50
+
+--- lcp ---
+fetch user.events
+| filter characteristics.has_page_summary
+| makeTimeseries  
+  p75LCP_scalar = percentile(web_vitals.largest_contentful_paint, 75, scalar:true)
+| limit 50
+
+--- error_count ---
+fetch user.events
+| filter characteristics.has_error
+| makeTimeseries count = count()
+| fieldsAdd errors = arraySum(count)
+| limit 50
+
+--- page_load_time ---
+fetch user.events
+| filter characteristics.has_navigation
+| makeTimeseries  
+  medianPageLoad = percentile(performance.load_event_end, 50),
+  medianPageLoad_scalar = percentile(performance.load_event_end, 50, scalar:true)
+| limit 50
+
+--- navigations ---
+fetch user.events
+| filter characteristics.has_navigation 
+| makeTimeseries Count = count()
+| fieldsAdd navigations = arraySum(Count)
+| limit 50
+
+--- user_actions ---
+fetch user.events
+| filter characteristics.has_page_summary or characteristics.has_w3c_navigation_timings
+| filter isNotNull(page.name)
+| summarize {
+    wlcp = if(isNull(percentile(web_vitals.largest_contentful_paint, 75)), 0, else:percentile(web_vitals.largest_contentful_paint, 75)), 
+    wcls = if(isNull(percentile(web_vitals.cumulative_layout_shift, 75)), 0, else:percentile(web_vitals.cumulative_layout_shift, 75)), 
+    winp = if(isNull(percentile(web_vitals.interaction_to_next_paint, 75)), 0, else:percentile(web_vitals.interaction_to_next_paint, 75)), 
+    Count = countIf(characteristics.has_w3c_navigation_timings)
+  }, by: { page.name, dt.rum.application.entity }
+| fieldsAdd dt.entity.application = dt.rum.application.entity
+| fieldsAdd Application = entityName(dt.entity.application)
+| fieldsRemove dt.entity.application
+| fields App=Application, Page = page.name, `Count` = Count, CWVScore = if(((wcls >= .1) or (toDouble(wlcp) >= 2500000000) or (toDouble(winp) >= 200000000)), "╬ô┬Ñ├«Fail", else: "╬ô┬ú├áPass"), `LCP` = wlcp, `INP` = winp, `CLS` = round(wcls,decimals:4)
+| sort Count desc
+//| limit 50
+
+--- cwv_health ---
+fetch user.events
+| filter characteristics.has_page_summary or characteristics.has_w3c_navigation_timings
+| filter isNotNull(page.name)
+| summarize {
+    wlcp = if(isNull(percentile(web_vitals.largest_contentful_paint, 75)), 0, else:percentile(web_vitals.largest_contentful_paint, 75)), 
+    wcls = if(isNull(percentile(web_vitals.cumulative_layout_shift, 75)), 0, else:percentile(web_vitals.cumulative_layout_shift, 75)), 
+    winp = if(isNull(percentile(web_vitals.interaction_to_next_paint, 75)), 0, else:percentile(web_vitals.interaction_to_next_paint, 75)), 
+    Count = countIf(characteristics.has_w3c_navigation_timings)
+  }, by: { page.name, dt.rum.application.entity }
+| fieldsAdd dt.entity.application = dt.rum.application.entity
+| fieldsAdd Application = entityName(dt.entity.application)
+| fieldsRemove dt.entity.application
+| fields App=Application, Page = page.name, CWVScore = if(((wcls >= .1) or (toDouble(wlcp) >= 2500000000) or (toDouble(winp) >= 200000000)), 0, else: 1)
+| sort CWVScore asc
+| limit 50
+
+--- applications ---
+fetch user.events
+| filter characteristics.has_page_summary or characteristics.has_w3c_navigation_timings
+| filter isNotNull(page.name)
+| summarize {
+    wlcp = if(isNull(percentile(web_vitals.largest_contentful_paint, 75)), 0, else:percentile(web_vitals.largest_contentful_paint, 75)), 
+    wcls = if(isNull(percentile(web_vitals.cumulative_layout_shift, 75)), 0, else:percentile(web_vitals.cumulative_layout_shift, 75)), 
+    winp = if(isNull(percentile(web_vitals.interaction_to_next_paint, 75)), 0, else:percentile(web_vitals.interaction_to_next_paint, 75)), 
+    Count = countIf(characteristics.has_w3c_navigation_timings)
+  }, by: { dt.rum.application.entity }
+| fieldsAdd dt.entity.application = dt.rum.application.entity
+| fieldsAdd Application = entityName(dt.entity.application)
+| fieldsRemove dt.entity.application
+| fields App=Application, `Count` = Count, CWVScore = if(((wcls >= .1) or (toDouble(wlcp) >= 2500000000) or (toDouble(winp) >= 200000000)), "╬ô┬Ñ├«Fail", else: "╬ô┬ú├áPass"), `LCP` = wlcp, `INP` = winp, `CLS` = round(wcls,decimals:4)
+| sort Count desc
+| limit 50
+
+--- lcp_trend ---
+fetch user.events
+| filter characteristics.has_page_summary
+| makeTimeseries  
+  p75LCP = percentile(web_vitals.largest_contentful_paint, 75)
+| limit 50
+
+--- inp_trend ---
+fetch user.events
+| filter characteristics.has_page_summary
+| makeTimeseries  
+  p75INP = percentile(web_vitals.interaction_to_next_paint , 75)
+| limit 50
+
+--- cls_trend ---
+fetch user.events
+| filter characteristics.has_page_summary
+| makeTimeseries  
+  p75CLS = percentile(web_vitals.cumulative_layout_shift, 75)
+| limit 50

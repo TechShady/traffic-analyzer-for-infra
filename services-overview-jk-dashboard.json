@@ -1,0 +1,19 @@
+﻿{
+  "id": "def53d54-9313-47d6-b40e-8f20d20cc4b1",
+  "name": "Services Overview - jk",
+  "type": "dashboard",
+  "version": 2,
+  "owner": "1f41bd32-2ce1-408d-b6e2-efb6a36f870d",
+  "isPrivate": true,
+  "modificationInfo": {
+    "createdBy": "1f41bd32-2ce1-408d-b6e2-efb6a36f870d",
+    "createdTime": "2026-04-23T19:04:31.67Z",
+    "lastModifiedBy": "1f41bd32-2ce1-408d-b6e2-efb6a36f870d",
+    "lastModifiedTime": "2026-04-23T19:04:47.769Z"
+  },
+  "access": [
+    "read",
+    "delete",
+    "write"
+  ]
+}

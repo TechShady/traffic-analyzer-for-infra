@@ -1,0 +1,75 @@
+﻿timeseries {latency_p50 = median(dt.service.request.response_time),
+           latency_p90 = percentile(dt.service.request.response_time, 90),
+           latency_p99 = percentile(dt.service.request.response_time, 99),
+           requests = sum(dt.service.request.count), 
+           errors = sum(dt.service.request.failure_count)},
+           by:{dt.entity.service}
+
+| lookup [ timeseries latency_avg = avg(dt.service.request.response_time),
+           by:{dt.entity.service},
+           ],
+            sourceField:dt.entity.service, lookupField:dt.entity.service,
+            prefix: "latencyAvg."
+
+| lookup [ timeseries http_5xx = sum(dt.service.request.count,default: 0.0),
+           by:{dt.entity.service},
+           filter: (http.response.status_code >= 500 and http.response.status_code <= 599)
+                   ],
+            sourceField:dt.entity.service, lookupField:dt.entity.service,
+            prefix: "http5xx."
+
+| lookup [ timeseries http_4xx = sum(dt.service.request.count,default: 0.0),
+           by:{dt.entity.service},
+           filter: (http.response.status_code >= 400 and http.response.status_code <= 499)
+                   ],
+            sourceField:dt.entity.service, lookupField:dt.entity.service,
+            prefix: "http4xx."
+
+| lookup [fetch dt.davis.problems, from:now()-7h, to:now()
+         | filter event.status=="ACTIVE" and dt.davis.is_duplicate==false// and matchesPhrase(affected_entity_ids, "SERVICE-")
+         | expand affected_entity_ids
+         | summarize {Problems = countDistinct(display_id),
+               event.id = takeFirst(event.id),
+               event.kind = takeFirst(event.kind)}, 
+               by:{affected_entity_ids}],
+  sourceField:dt.entity.service, lookupField:affected_entity_ids, 
+  fields:{Problems, affected_entity_ids,event.id,event.kind}    
+
+| fieldsAdd Latency_Avg = arrayAvg(latencyAvg.latency_avg),
+            Latency_p50 = arrayAvg(latency_p50),
+            Latency_p90 = arrayAvg(latency_p90),
+            Latency_p99 = arrayAvg(latency_p99),
+            Requests = arraySum(requests), 
+            Failures = arraySum(errors),
+           `5xx` = arraySum(http5xx.http_5xx),
+           `4xx` = arraySum(http4xx.http_4xx) 
+| fieldsAdd FailureRate = (Failures/Requests) *100
+| fieldsAdd Service = entityName(dt.entity.service)
+| fieldsAdd dt.entity.process_group = entityAttr(dt.entity.service, "runs_on")
+| fieldsAdd dt.entity.process_group = dt.entity.process_group[dt.entity.process_group]
+
+| fields Status = if(Problems >= 0 , "PROBLEM",  else: "HEALTHY"),
+         Service,
+         dt.entity.service,
+         StatusSort = if(Problems > 0, 0, else: 1),
+         Requests,
+         Latency_Avg,
+         Latency_p50,
+         Latency_p90,
+         Latency_p99,
+         FailureRate,
+         Failures,
+        `5xx` = if(isNull(`5xx`), 0, else:`5xx`),
+        `4xx` = if(isNull(`4xx`), 0, else:`4xx`),
+         event.id,
+         event.kind
+
+         
+         
+         // `Analyze Errors` = concat(
+         //  )
+
+        // `Analyze Errors` = concat(
+| sort StatusSort asc
+| fieldsRemove StatusSort
+| limit 1000

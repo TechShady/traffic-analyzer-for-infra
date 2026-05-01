@@ -699,7 +699,7 @@ export const TrafficAnalyzer = () => {
       {/* Filters - sticky at top */}
       <div style={{ position: "sticky", top: 0, zIndex: 10, background: "linear-gradient(180deg, rgba(20, 22, 38, 0.97) 0%, rgba(26, 26, 46, 0.95) 100%)", backdropFilter: "blur(12px)", padding: "12px 20px 10px 20px", borderBottom: "1px solid rgba(99, 130, 191, 0.15)", boxShadow: "0 4px 20px rgba(0, 0, 0, 0.3)" }}>
         <Flex flexDirection="column" gap={4} style={{ width: "100%" }}>
-          <Strong style={{ textAlign: "center", letterSpacing: 0.5 }}>Traffic Percentage: {trafficChangePercent}</Strong>
+          <Strong style={{ textAlign: "center", letterSpacing: 0.5 }}>Traffic Percentage: {trafficChangePercent}%</Strong>
         <input
           type="range"
           min={0}

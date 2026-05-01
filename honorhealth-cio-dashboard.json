@@ -1,0 +1,545 @@
+{
+  "name": "HonorHealth — CIO Executive Command Center",
+  "type": "dashboard",
+  "content": {
+    "version": 21,
+    "variables": [],
+    "tiles": {
+      "1": {
+        "type": "markdown",
+        "content": "# 🏥 HonorHealth — CIO Executive Command Center\n---\n**Real-Time Observability | 9 Acute-Care Hospitals | 20,000+ Employees | $4B+ Health System**\n\n*Unified Technology Operations • Infrastructure • Applications • Security — Powered by Dynatrace*"
+      },
+      "2": {
+        "type": "markdown",
+        "content": "## 📊 System Health at a Glance"
+      },
+      "3": {
+        "type": "data",
+        "title": "System Uptime",
+        "query": "data record(value = 99.97)\n| fields `System Uptime (%)` = value",
+        "visualization": "singleValue",
+        "visualizationSettings": {
+          "singleValue": {
+            "recordField": "System Uptime (%)",
+            "labelMode": "none"
+          },
+          "coloring": {
+            "colorRules": [
+              {
+                "value": 99,
+                "comparator": ">=",
+                "field": "System Uptime (%)",
+                "colorMode": "custom-color",
+                "customColor": "#1DBB53"
+              }
+            ]
+          },
+          "autoSelectVisualization": false
+        },
+        "querySettings": {},
+        "davis": { "enabled": false }
+      },
+      "4": {
+        "type": "data",
+        "title": "Hospitals Online",
+        "query": "data record(value = 9)\n| fields `Hospitals Online (of 9)` = value",
+        "visualization": "singleValue",
+        "visualizationSettings": {
+          "singleValue": {
+            "recordField": "Hospitals Online (of 9)",
+            "labelMode": "none"
+          },
+          "coloring": {
+            "colorRules": [
+              {
+                "value": 9,
+                "comparator": "==",
+                "field": "Hospitals Online (of 9)",
+                "colorMode": "custom-color",
+                "customColor": "#14B8A6"
+              }
+            ]
+          },
+          "autoSelectVisualization": false
+        },
+        "querySettings": {},
+        "davis": { "enabled": false }
+      },
+      "5": {
+        "type": "data",
+        "title": "Active P1 Incidents",
+        "query": "data record(value = 2)\n| fields `Active P1 Incidents` = value",
+        "visualization": "singleValue",
+        "visualizationSettings": {
+          "singleValue": {
+            "recordField": "Active P1 Incidents",
+            "labelMode": "none"
+          },
+          "coloring": {
+            "colorRules": [
+              {
+                "value": 5,
+                "comparator": "<",
+                "field": "Active P1 Incidents",
+                "colorMode": "custom-color",
+                "customColor": "#F5A623"
+              }
+            ]
+          },
+          "autoSelectVisualization": false
+        },
+        "querySettings": {},
+        "davis": { "enabled": false }
+      },
+      "6": {
+        "type": "data",
+        "title": "Mean Time to Resolve",
+        "query": "data record(value = 18)\n| fields `MTTR (minutes)` = value",
+        "visualization": "singleValue",
+        "visualizationSettings": {
+          "singleValue": {
+            "recordField": "MTTR (minutes)",
+            "labelMode": "none"
+          },
+          "coloring": {
+            "colorRules": [
+              {
+                "value": 30,
+                "comparator": "<",
+                "field": "MTTR (minutes)",
+                "colorMode": "custom-color",
+                "customColor": "#134FC9"
+              }
+            ]
+          },
+          "autoSelectVisualization": false
+        },
+        "querySettings": {},
+        "davis": { "enabled": false }
+      },
+      "7": {
+        "type": "data",
+        "title": "Digital Experience Score",
+        "query": "data record(value = 94.2)\n| fields `Experience Score` = value",
+        "visualization": "singleValue",
+        "visualizationSettings": {
+          "singleValue": {
+            "recordField": "Experience Score",
+            "labelMode": "none"
+          },
+          "coloring": {
+            "colorRules": [
+              {
+                "value": 90,
+                "comparator": ">=",
+                "field": "Experience Score",
+                "colorMode": "custom-color",
+                "customColor": "#7B2FBE"
+              }
+            ]
+          },
+          "autoSelectVisualization": false
+        },
+        "querySettings": {},
+        "davis": { "enabled": false }
+      },
+      "8": {
+        "type": "markdown",
+        "content": "## 🖥️ Hospital Infrastructure"
+      },
+      "9": {
+        "type": "data",
+        "title": "Hospital Systems — Uptime Status",
+        "query": "data record(Hospital = \"Scottsdale Osborn Medical Center\", Uptime = 99.8),\n     record(Hospital = \"Scottsdale Shea Medical Center\", Uptime = 99.9),\n     record(Hospital = \"Thompson Peak Medical Center\", Uptime = 99.7),\n     record(Hospital = \"Deer Valley Medical Center\", Uptime = 99.5),\n     record(Hospital = \"John C. Lincoln Medical Center\", Uptime = 98.2),\n     record(Hospital = \"HonorHealth Tempe\", Uptime = 99.9),\n     record(Hospital = \"HonorHealth Chandler\", Uptime = 99.6),\n     record(Hospital = \"Sonoran Crossing Medical Center\", Uptime = 99.8),\n     record(Hospital = \"HonorHealth Florence\", Uptime = 99.4)",
+        "visualization": "honeycomb",
+        "visualizationSettings": {},
+        "querySettings": {},
+        "davis": { "enabled": false }
+      },
+      "10": {
+        "type": "data",
+        "title": "Infrastructure CPU Utilization Trend",
+        "query": "timeseries avg(dt.host.cpu.usage)",
+        "visualization": "areaChart",
+        "visualizationSettings": {},
+        "querySettings": {},
+        "davis": { "enabled": false }
+      },
+      "11": {
+        "type": "markdown",
+        "content": "## ⚡ Application Performance"
+      },
+      "12": {
+        "type": "data",
+        "title": "Application Response Performance by System",
+        "query": "data record(System = \"Epic EHR\", ResponseMs = 145),\n     record(System = \"MyChart Patient Portal\", ResponseMs = 89),\n     record(System = \"SAP Finance\", ResponseMs = 234),\n     record(System = \"Telehealth Platform\", ResponseMs = 67),\n     record(System = \"Lab Information System\", ResponseMs = 112),\n     record(System = \"Radiology PACS\", ResponseMs = 178),\n     record(System = \"Pharmacy Management\", ResponseMs = 95),\n     record(System = \"Nursing Documentation\", ResponseMs = 132)",
+        "visualization": "categoricalBarChart",
+        "visualizationSettings": {},
+        "querySettings": {},
+        "davis": { "enabled": false }
+      },
+      "13": {
+        "type": "data",
+        "title": "Infrastructure Memory Utilization Trend",
+        "query": "timeseries avg(dt.host.memory.usage)",
+        "visualization": "areaChart",
+        "visualizationSettings": {},
+        "querySettings": {},
+        "davis": { "enabled": false }
+      },
+      "14": {
+        "type": "markdown",
+        "content": "## 🤖 I&O Automation & AI Initiatives"
+      },
+      "15": {
+        "type": "data",
+        "title": "I&O Automation Rate",
+        "query": "data record(value = 67.3)\n| fields `Automation Rate (%)` = value",
+        "visualization": "gauge",
+        "visualizationSettings": {
+          "gauge": {
+            "minValue": 0,
+            "maxValue": 100
+          }
+        },
+        "querySettings": {},
+        "davis": { "enabled": false }
+      },
+      "16": {
+        "type": "data",
+        "title": "AI-Resolved Tickets (Monthly)",
+        "query": "data record(value = 4283)\n| fields `AI-Resolved Tickets` = value",
+        "visualization": "singleValue",
+        "visualizationSettings": {
+          "singleValue": {
+            "recordField": "AI-Resolved Tickets",
+            "labelMode": "none"
+          },
+          "coloring": {
+            "colorRules": [
+              {
+                "value": 0,
+                "comparator": "!=",
+                "field": "AI-Resolved Tickets",
+                "colorMode": "custom-color",
+                "customColor": "#7B2FBE"
+              }
+            ]
+          },
+          "autoSelectVisualization": false
+        },
+        "querySettings": {},
+        "davis": { "enabled": false }
+      },
+      "17": {
+        "type": "data",
+        "title": "Automation Tasks by Category",
+        "query": "data record(Category = \"Infrastructure Provisioning\", Tasks = 2847),\n     record(Category = \"Incident Auto-Remediation\", Tasks = 1923),\n     record(Category = \"Patch Management\", Tasks = 3156),\n     record(Category = \"Compliance Scanning\", Tasks = 1567),\n     record(Category = \"CI/CD Deployments\", Tasks = 2234),\n     record(Category = \"Config Management\", Tasks = 1891)",
+        "visualization": "categoricalBarChart",
+        "visualizationSettings": {},
+        "querySettings": {},
+        "davis": { "enabled": false }
+      },
+      "18": {
+        "type": "markdown",
+        "content": "## 🔒 Security & Compliance"
+      },
+      "19": {
+        "type": "data",
+        "title": "Security Events Overview",
+        "query": "data record(Category = \"Resolved\", Count = 1247),\n     record(Category = \"In Progress\", Count = 89),\n     record(Category = \"Critical Open\", Count = 12),\n     record(Category = \"Under Review\", Count = 34)",
+        "visualization": "donutChart",
+        "visualizationSettings": {},
+        "querySettings": {},
+        "davis": { "enabled": false }
+      },
+      "20": {
+        "type": "data",
+        "title": "HIPAA Compliance Score",
+        "query": "data record(value = 97.8)\n| fields `Compliance Score (%)` = value",
+        "visualization": "singleValue",
+        "visualizationSettings": {
+          "singleValue": {
+            "recordField": "Compliance Score (%)",
+            "labelMode": "none"
+          },
+          "coloring": {
+            "colorRules": [
+              {
+                "value": 95,
+                "comparator": ">=",
+                "field": "Compliance Score (%)",
+                "colorMode": "custom-color",
+                "customColor": "#1DBB53"
+              }
+            ]
+          },
+          "autoSelectVisualization": false
+        },
+        "querySettings": {},
+        "davis": { "enabled": false }
+      },
+      "21": {
+        "type": "data",
+        "title": "Open Vulnerabilities",
+        "query": "data record(value = 23)\n| fields `Open Vulnerabilities` = value",
+        "visualization": "singleValue",
+        "visualizationSettings": {
+          "singleValue": {
+            "recordField": "Open Vulnerabilities",
+            "labelMode": "none"
+          },
+          "coloring": {
+            "colorRules": [
+              {
+                "value": 50,
+                "comparator": "<",
+                "field": "Open Vulnerabilities",
+                "colorMode": "custom-color",
+                "customColor": "#F5A623"
+              }
+            ]
+          },
+          "autoSelectVisualization": false
+        },
+        "querySettings": {},
+        "davis": { "enabled": false }
+      },
+      "22": {
+        "type": "markdown",
+        "content": "## 💰 IT Financial Overview"
+      },
+      "23": {
+        "type": "data",
+        "title": "Infrastructure Cost Indicators (CPU & Memory Trends)",
+        "query": "timeseries {cpu = avg(dt.host.cpu.usage), mem = avg(dt.host.memory.usage)}",
+        "visualization": "lineChart",
+        "visualizationSettings": {},
+        "querySettings": {},
+        "davis": { "enabled": false }
+      },
+      "24": {
+        "type": "data",
+        "title": "IT Budget Allocation by Department ($M)",
+        "query": "data record(Department = \"Infrastructure & Cloud\", Budget = 42),\n     record(Department = \"Applications & EHR\", Budget = 28),\n     record(Department = \"Security & Compliance\", Budget = 12),\n     record(Department = \"AI & Automation\", Budget = 8),\n     record(Department = \"Network & Telecom\", Budget = 6),\n     record(Department = \"PMO & Governance\", Budget = 4)",
+        "visualization": "pieChart",
+        "visualizationSettings": {},
+        "querySettings": {},
+        "davis": { "enabled": false }
+      },
+      "25": {
+        "type": "markdown",
+        "content": "## 📋 Strategic Project Portfolio"
+      },
+      "26": {
+        "type": "data",
+        "title": "Active Strategic Projects — Executive View",
+        "query": "data record(Project = \"Epic EHR Platform Upgrade\", Status = \"On Track\", Completion = 78, Lead = \"Sarah Chen\", Priority = \"Critical\", Budget = \"$12.5M\"),\n     record(Project = \"Cloud Migration Phase 3\", Status = \"On Track\", Completion = 62, Lead = \"Mike Torres\", Priority = \"High\", Budget = \"$8.2M\"),\n     record(Project = \"I&O Automation Platform\", Status = \"At Risk\", Completion = 45, Lead = \"Priya Sharma\", Priority = \"Critical\", Budget = \"$5.1M\"),\n     record(Project = \"AI-Powered Clinical Analytics\", Status = \"On Track\", Completion = 34, Lead = \"David Kim\", Priority = \"High\", Budget = \"$4.8M\"),\n     record(Project = \"Network Infrastructure Refresh\", Status = \"On Track\", Completion = 88, Lead = \"James Wright\", Priority = \"Medium\", Budget = \"$6.3M\"),\n     record(Project = \"Zero Trust Security Framework\", Status = \"Delayed\", Completion = 52, Lead = \"Lisa Park\", Priority = \"Critical\", Budget = \"$3.7M\"),\n     record(Project = \"SAP Financial Integration\", Status = \"On Track\", Completion = 91, Lead = \"Robert Chen\", Priority = \"High\", Budget = \"$7.4M\"),\n     record(Project = \"Telehealth Platform Expansion\", Status = \"On Track\", Completion = 71, Lead = \"Maria Gonzalez\", Priority = \"Medium\", Budget = \"$2.9M\")",
+        "visualization": "table",
+        "visualizationSettings": {},
+        "querySettings": {},
+        "davis": { "enabled": false }
+      },
+      "27": {
+        "type": "markdown",
+        "content": "## 👥 IT Workforce & Capacity"
+      },
+      "28": {
+        "type": "data",
+        "title": "Total IT Headcount",
+        "query": "data record(value = 400)\n| fields `IT Staff` = value",
+        "visualization": "singleValue",
+        "visualizationSettings": {
+          "singleValue": {
+            "recordField": "IT Staff",
+            "labelMode": "none"
+          },
+          "coloring": {
+            "colorRules": [
+              {
+                "value": 0,
+                "comparator": "!=",
+                "field": "IT Staff",
+                "colorMode": "custom-color",
+                "customColor": "#134FC9"
+              }
+            ]
+          },
+          "autoSelectVisualization": false
+        },
+        "querySettings": {},
+        "davis": { "enabled": false }
+      },
+      "29": {
+        "type": "data",
+        "title": "Open Positions",
+        "query": "data record(value = 12)\n| fields `Open Positions` = value",
+        "visualization": "singleValue",
+        "visualizationSettings": {
+          "singleValue": {
+            "recordField": "Open Positions",
+            "labelMode": "none"
+          },
+          "coloring": {
+            "colorRules": [
+              {
+                "value": 0,
+                "comparator": "!=",
+                "field": "Open Positions",
+                "colorMode": "custom-color",
+                "customColor": "#F5A623"
+              }
+            ]
+          },
+          "autoSelectVisualization": false
+        },
+        "querySettings": {},
+        "davis": { "enabled": false }
+      },
+      "30": {
+        "type": "data",
+        "title": "Staff Retention Rate",
+        "query": "data record(value = 94.1)\n| fields `Retention Rate (%)` = value",
+        "visualization": "singleValue",
+        "visualizationSettings": {
+          "singleValue": {
+            "recordField": "Retention Rate (%)",
+            "labelMode": "none"
+          },
+          "coloring": {
+            "colorRules": [
+              {
+                "value": 90,
+                "comparator": ">=",
+                "field": "Retention Rate (%)",
+                "colorMode": "custom-color",
+                "customColor": "#1DBB53"
+              }
+            ]
+          },
+          "autoSelectVisualization": false
+        },
+        "querySettings": {},
+        "davis": { "enabled": false }
+      },
+      "31": {
+        "type": "markdown",
+        "content": "## 🌐 Digital Patient Experience"
+      },
+      "32": {
+        "type": "data",
+        "title": "Patient Portal Uptime",
+        "query": "data record(value = 99.99)\n| fields `Portal Uptime (%)` = value",
+        "visualization": "singleValue",
+        "visualizationSettings": {
+          "singleValue": {
+            "recordField": "Portal Uptime (%)",
+            "labelMode": "none"
+          },
+          "coloring": {
+            "colorRules": [
+              {
+                "value": 99.9,
+                "comparator": ">=",
+                "field": "Portal Uptime (%)",
+                "colorMode": "custom-color",
+                "customColor": "#1DBB53"
+              }
+            ]
+          },
+          "autoSelectVisualization": false
+        },
+        "querySettings": {},
+        "davis": { "enabled": false }
+      },
+      "33": {
+        "type": "data",
+        "title": "Telehealth Sessions (Monthly)",
+        "query": "data record(value = 12847)\n| fields `Telehealth Sessions` = value",
+        "visualization": "singleValue",
+        "visualizationSettings": {
+          "singleValue": {
+            "recordField": "Telehealth Sessions",
+            "labelMode": "none"
+          },
+          "coloring": {
+            "colorRules": [
+              {
+                "value": 0,
+                "comparator": "!=",
+                "field": "Telehealth Sessions",
+                "colorMode": "custom-color",
+                "customColor": "#14B8A6"
+              }
+            ]
+          },
+          "autoSelectVisualization": false
+        },
+        "querySettings": {},
+        "davis": { "enabled": false }
+      },
+      "34": {
+        "type": "data",
+        "title": "Patient Satisfaction (NPS)",
+        "query": "data record(value = 87)\n| fields `NPS Score` = value",
+        "visualization": "singleValue",
+        "visualizationSettings": {
+          "singleValue": {
+            "recordField": "NPS Score",
+            "labelMode": "none"
+          },
+          "coloring": {
+            "colorRules": [
+              {
+                "value": 70,
+                "comparator": ">=",
+                "field": "NPS Score",
+                "colorMode": "custom-color",
+                "customColor": "#7B2FBE"
+              }
+            ]
+          },
+          "autoSelectVisualization": false
+        },
+        "querySettings": {},
+        "davis": { "enabled": false }
+      }
+    },
+    "layouts": {
+      "1":  { "x": 0,  "y": 0,  "w": 20, "h": 3 },
+      "2":  { "x": 0,  "y": 3,  "w": 20, "h": 1 },
+      "3":  { "x": 0,  "y": 4,  "w": 4,  "h": 5 },
+      "4":  { "x": 4,  "y": 4,  "w": 4,  "h": 5 },
+      "5":  { "x": 8,  "y": 4,  "w": 4,  "h": 5 },
+      "6":  { "x": 12, "y": 4,  "w": 4,  "h": 5 },
+      "7":  { "x": 16, "y": 4,  "w": 4,  "h": 5 },
+      "8":  { "x": 0,  "y": 9,  "w": 20, "h": 1 },
+      "9":  { "x": 0,  "y": 10, "w": 10, "h": 8 },
+      "10": { "x": 10, "y": 10, "w": 10, "h": 8 },
+      "11": { "x": 0,  "y": 18, "w": 20, "h": 1 },
+      "12": { "x": 0,  "y": 19, "w": 10, "h": 8 },
+      "13": { "x": 10, "y": 19, "w": 10, "h": 8 },
+      "14": { "x": 0,  "y": 27, "w": 20, "h": 1 },
+      "15": { "x": 0,  "y": 28, "w": 5,  "h": 7 },
+      "16": { "x": 5,  "y": 28, "w": 5,  "h": 7 },
+      "17": { "x": 10, "y": 28, "w": 10, "h": 7 },
+      "18": { "x": 0,  "y": 35, "w": 20, "h": 1 },
+      "19": { "x": 0,  "y": 36, "w": 7,  "h": 7 },
+      "20": { "x": 7,  "y": 36, "w": 6,  "h": 7 },
+      "21": { "x": 13, "y": 36, "w": 7,  "h": 7 },
+      "22": { "x": 0,  "y": 43, "w": 20, "h": 1 },
+      "23": { "x": 0,  "y": 44, "w": 10, "h": 8 },
+      "24": { "x": 10, "y": 44, "w": 10, "h": 8 },
+      "25": { "x": 0,  "y": 52, "w": 20, "h": 1 },
+      "26": { "x": 0,  "y": 53, "w": 20, "h": 10 },
+      "27": { "x": 0,  "y": 63, "w": 20, "h": 1 },
+      "28": { "x": 0,  "y": 64, "w": 7,  "h": 5 },
+      "29": { "x": 7,  "y": 64, "w": 6,  "h": 5 },
+      "30": { "x": 13, "y": 64, "w": 7,  "h": 5 },
+      "31": { "x": 0,  "y": 69, "w": 20, "h": 1 },
+      "32": { "x": 0,  "y": 70, "w": 7,  "h": 5 },
+      "33": { "x": 7,  "y": 70, "w": 6,  "h": 5 },
+      "34": { "x": 13, "y": 70, "w": 7,  "h": 5 }
+    }
+  }
+}

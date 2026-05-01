@@ -1,0 +1,1931 @@
+{
+  "version": 21,
+  "variables": [
+    {
+      "version": 2,
+      "key": "Service",
+      "type": "query",
+      "visible": true,
+      "editable": true,
+      "input": "fetch dt.entity.service\n| filter startsWith(serviceType, \"WEB_\") and not (startsWith(entity.name, \"/services/\") or startsWith(entity.name, \"/WebService/\"))\n| fields entity.name\n| dedup entity.name\n| limit 1000",
+      "multiple": true,
+      "defaultValue": [
+        "3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*"
+      ]
+    },
+    {
+      "version": 2,
+      "key": "ServiceID",
+      "type": "query",
+      "visible": false,
+      "editable": true,
+      "input": "fetch dt.entity.service\n| filter in(entity.name, array($Service))\n| dedup id\n| fields id",
+      "multiple": true,
+      "defaultValue": [
+        "3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*"
+      ]
+    },
+    {
+      "version": 2,
+      "key": "PGI",
+      "type": "query",
+      "visible": false,
+      "editable": true,
+      "input": "timeseries cpu = avg(dt.process.cpu.usage),\n           by: {dt.entity.process_group_instance,\n                dt.entity.process_group}\n| fieldsAdd dt.entity.service = entityAttr(dt.entity.process_group, type:\"dt.entity.process_group\", \"runs\") \n| fieldsAdd dt.entity.service = dt.entity.service[dt.entity.service]\n| filter in(dt.entity.service, array($ServiceID))\n| fields dt.entity.process_group_instance\n",
+      "multiple": true,
+      "defaultValue": [
+        "3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*"
+      ]
+    },
+    {
+      "version": 2,
+      "key": "DynatraceTenant",
+      "type": "query",
+      "visible": false,
+      "editable": true,
+      "input": "fetch dt.entity.environment\n| fields dt.system.environment\n| limit 1",
+      "multiple": true,
+      "defaultValue": [
+        "3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*"
+      ]
+    },
+    {
+      "version": 2,
+      "key": "WorkloadID",
+      "type": "query",
+      "visible": false,
+      "editable": true,
+      "input": "data record(workloadID = \"dummy record\")\n| append[fetch dt.entity.service\n| filter in(id, array($ServiceID))\n| fields  workloadID = belongs_to[dt.entity.cloud_application]\n| expand workloadID\n| dedup workloadID]\n",
+      "multiple": true,
+      "defaultValue": [
+        "3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*"
+      ]
+    },
+    {
+      "version": 2,
+      "key": "LogsAppUrl",
+      "type": "query",
+      "visible": false,
+      "editable": true,
+      "input": "fetch dt.entity.environment\n| fields logappurl = concat(\"https://\",dt.system.environment,\".apps.dynatrace.com/ui/apps/dynatrace.logs/#\")\n| fieldsAdd queryPart1 = \"\"\"{\"version\":0,\"data\":{\"queryConfig\":{\"query\":\"fetch logs\\n|sort timestamp desc\\n|filter status == \\\"ERROR\\\" and matchesValue(dt.entity.process_group,\\\"\"\"\"\n| fieldsAdd queryPart1 = encodeUrl(queryPart1)\n| fields LogAppURLPlusFirstPartOfQuery = concat(logappurl,queryPart1)\n",
+      "multiple": true,
+      "defaultValue": [
+        "3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*"
+      ]
+    },
+    {
+      "version": 2,
+      "key": "LogQueryTimeFrame",
+      "type": "query",
+      "visible": false,
+      "editable": true,
+      "input": "data record(QueryTimeFrame = \"\"\"\",\"timeframe\":{\"from\":$dt_timeframe_from,\"to\":$dt_timeframe_to},\"filter\":{\"version\":\"12.2.4\",\"subQueries\":[{\"id\":\"A\",\"isEnabled\":true,\"datatype\":\"logs\",\"filter\":\"\"}],\"globalCommands\":{\"sort\":{\"field\":\"timestamp\",\"direction\":\"desc\"}}},\"segments\":[],\"showDqlEditor\":true},\"tableConfig\":{\"visibleColumns\":[\"timestamp\",\"status\",\"content\"],\"columnAttributes\":{\"columnWidths\":{},\"lineWraps\":{},\"tableLineWrap\":false},\"columnOrder\":[\"timestamp\",\"status\",\"content\"]}}}\"\"\")\n| fields QueryTimeFrame = encodeUrl(QueryTimeFrame)",
+      "multiple": true,
+      "defaultValue": [
+        "3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*"
+      ]
+    }
+  ],
+  "tiles": {
+    "0": {
+      "title": "Service - Requests Total",
+      "description": "Number of requests received by a given service.",
+      "type": "data",
+      "query": "timeseries requests = sum(dt.service.request.count),\n           by:{dt.entity.service},\n           filter: in(dt.entity.service, array($ServiceID))\n| fieldsAdd service.name  = entityName(dt.entity.service)\n| fields timeframe,\n         interval,\n         service.name,\n         dt.entity.service,\n         requests\n| sort arraySum(requests) desc\n| limit 100",
+      "visualization": "lineChart",
+      "visualizationSettings": {
+        "chartSettings": {
+          "truncationMode": "middle",
+          "legend": {
+            "hidden": true
+          },
+          "leftYAxisSettings": {
+            "label": "Service request count"
+          },
+          "xAxisLabel": "timeframe",
+          "xAxisScaling": "analyzedTimeframe",
+          "fieldMapping": {
+            "leftAxisValues": [
+              "requests"
+            ],
+            "timestamp": "timeframe"
+          },
+          "gapPolicy": "connect"
+        },
+        "dataMapping": {
+          "displayedFields": [
+            "service.name"
+          ]
+        },
+        "autoSelectVisualization": false,
+        "unitsOverrides": [
+          {
+            "identifier": "Availability",
+            "unitCategory": "percentage",
+            "baseUnit": "percent",
+            "displayUnit": null,
+            "decimals": 2,
+            "suffix": "",
+            "delimiter": false,
+            "added": 1714406692260
+          },
+          {
+            "identifier": "Performance",
+            "unitCategory": "percentage",
+            "baseUnit": "percent",
+            "displayUnit": null,
+            "decimals": 2,
+            "suffix": "",
+            "delimiter": false,
+            "added": 1714406706391
+          },
+          {
+            "identifier": "Latency",
+            "unitCategory": "time",
+            "baseUnit": "microsecond",
+            "displayUnit": null,
+            "decimals": 2,
+            "suffix": "",
+            "delimiter": false,
+            "added": 1714406730982
+          }
+        ]
+      },
+      "querySettings": {
+        "maxResultRecords": 1000,
+        "defaultScanLimitGbytes": 500,
+        "maxResultMegaBytes": 100,
+        "defaultSamplingRatio": 10,
+        "enableSampling": false
+      },
+      "davis": {
+        "enabled": false,
+        "davisVisualization": {
+          "isAvailable": true
+        }
+      }
+    },
+    "1": {
+      "title": "Service - Latency_p50",
+      "description": "Response time of a service measured in microseconds on the server side (server side measurements do not include e.g. proxy and networking times). Response time is the time until a response is sent to a calling application, process or other service. It does not include further asynchronous processing. ",
+      "type": "data",
+      "query": "timeseries latency_p50 = percentile(dt.service.request.response_time, 50),\n           by:{dt.entity.service},\n           filter: in(dt.entity.service, array($ServiceID))\n| fieldsAdd service.name  = entityName(dt.entity.service)\n| fields timeframe,\n         interval,\n         service.name,\n         dt.entity.service,\n         latency_p50\n| sort arrayAvg(latency_p50) desc\n| limit 100",
+      "visualization": "lineChart",
+      "visualizationSettings": {
+        "chartSettings": {
+          "truncationMode": "middle",
+          "legend": {
+            "hidden": true
+          },
+          "leftYAxisSettings": {
+            "label": "Service request response time"
+          },
+          "xAxisLabel": "timeframe",
+          "xAxisScaling": "analyzedTimeframe",
+          "fieldMapping": {
+            "leftAxisValues": [
+              "latency_p50"
+            ],
+            "timestamp": "timeframe"
+          },
+          "gapPolicy": "connect"
+        },
+        "dataMapping": {
+          "displayedFields": [
+            "service.name"
+          ]
+        },
+        "unitsOverrides": [
+          {
+            "identifier": "Availability",
+            "unitCategory": "percentage",
+            "baseUnit": "percent",
+            "displayUnit": null,
+            "decimals": 2,
+            "suffix": "",
+            "delimiter": false,
+            "added": 1714406692260
+          },
+          {
+            "identifier": "Performance",
+            "unitCategory": "percentage",
+            "baseUnit": "percent",
+            "displayUnit": null,
+            "decimals": 2,
+            "suffix": "",
+            "delimiter": false,
+            "added": 1714406706391
+          },
+          {
+            "identifier": "Latency",
+            "unitCategory": "time",
+            "baseUnit": "microsecond",
+            "displayUnit": null,
+            "decimals": 2,
+            "suffix": "",
+            "delimiter": false,
+            "added": 1714406730982
+          }
+        ]
+      },
+      "querySettings": {
+        "maxResultRecords": 1000,
+        "defaultScanLimitGbytes": 500,
+        "maxResultMegaBytes": 100,
+        "defaultSamplingRatio": 10,
+        "enableSampling": false
+      },
+      "davis": {
+        "enabled": false,
+        "davisVisualization": {
+          "isAvailable": true
+        }
+      }
+    },
+    "2": {
+      "title": "Service - Latency_p90",
+      "description": "Response time of a service measured in microseconds on the server side (server side measurements do not include e.g. proxy and networking times). Response time is the time until a response is sent to a calling application, process or other service. It does not include further asynchronous processing. ",
+      "type": "data",
+      "query": "timeseries latency_p90 = percentile(dt.service.request.response_time, 90),\n           by:{dt.entity.service},\n           filter: in(dt.entity.service, array($ServiceID))\n| fieldsAdd service.name  = entityName(dt.entity.service)\n| fields timeframe,\n         interval,\n         service.name,\n         dt.entity.service,\n         latency_p90\n| sort arrayAvg(latency_p90) desc\n| limit 100\n",
+      "visualization": "lineChart",
+      "visualizationSettings": {
+        "chartSettings": {
+          "truncationMode": "middle",
+          "legend": {
+            "hidden": true
+          },
+          "leftYAxisSettings": {
+            "label": "Service request response time"
+          },
+          "xAxisLabel": "timeframe",
+          "xAxisScaling": "analyzedTimeframe",
+          "fieldMapping": {
+            "leftAxisValues": [
+              "latency_p90"
+            ],
+            "timestamp": "timeframe"
+          },
+          "gapPolicy": "connect"
+        },
+        "dataMapping": {
+          "displayedFields": [
+            "service.name"
+          ]
+        },
+        "unitsOverrides": [
+          {
+            "identifier": "Availability",
+            "unitCategory": "percentage",
+            "baseUnit": "percent",
+            "displayUnit": null,
+            "decimals": 2,
+            "suffix": "",
+            "delimiter": false,
+            "added": 1714406692260
+          },
+          {
+            "identifier": "Performance",
+            "unitCategory": "percentage",
+            "baseUnit": "percent",
+            "displayUnit": null,
+            "decimals": 2,
+            "suffix": "",
+            "delimiter": false,
+            "added": 1714406706391
+          },
+          {
+            "identifier": "Latency",
+            "unitCategory": "time",
+            "baseUnit": "microsecond",
+            "displayUnit": null,
+            "decimals": 2,
+            "suffix": "",
+            "delimiter": false,
+            "added": 1714406730982
+          }
+        ]
+      },
+      "querySettings": {
+        "maxResultRecords": 1000,
+        "defaultScanLimitGbytes": 500,
+        "maxResultMegaBytes": 100,
+        "defaultSamplingRatio": 10,
+        "enableSampling": false
+      },
+      "davis": {
+        "enabled": false,
+        "davisVisualization": {
+          "isAvailable": true
+        }
+      }
+    },
+    "3": {
+      "title": "Service - Failed Requests",
+      "description": "Number of failed requests received by a given service.",
+      "type": "data",
+      "query": "timeseries errors = sum(dt.service.request.failure_count,default:0),\n           nonempty: true,\n           by:{dt.entity.service},\n           filter: in(dt.entity.service, array($ServiceID))\n| fieldsAdd service.name  = entityName(dt.entity.service)\n| fields timeframe,\n         interval,\n         service.name,\n         dt.entity.service,\n         errors\n| sort arraySum(errors) desc\n| limit 100",
+      "visualization": "lineChart",
+      "visualizationSettings": {
+        "chartSettings": {
+          "truncationMode": "middle",
+          "legend": {
+            "hidden": true
+          },
+          "leftYAxisSettings": {
+            "label": "Service failure count"
+          },
+          "xAxisLabel": "timeframe",
+          "xAxisScaling": "analyzedTimeframe",
+          "fieldMapping": {
+            "leftAxisValues": [
+              "errors"
+            ],
+            "timestamp": "timeframe"
+          },
+          "gapPolicy": "connect"
+        },
+        "dataMapping": {
+          "displayedFields": [
+            "service.name"
+          ]
+        },
+        "coloring": {
+          "colorRules": [
+            {
+              "field": "DT.name",
+              "comparator": "= *value*",
+              "value": "",
+              "type": "string",
+              "colorMode": "color-palette",
+              "colorPalette": "log-level"
+            }
+          ]
+        },
+        "autoSelectVisualization": false,
+        "unitsOverrides": []
+      },
+      "querySettings": {
+        "maxResultRecords": 1000,
+        "defaultScanLimitGbytes": 500,
+        "maxResultMegaBytes": 100,
+        "defaultSamplingRatio": 10,
+        "enableSampling": false
+      },
+      "davis": {
+        "enabled": false,
+        "davisVisualization": {
+          "isAvailable": true
+        }
+      }
+    },
+    "4": {
+      "title": "Service - Failed Rate %",
+      "description": "Failure Rate % by a given service.",
+      "type": "data",
+      "query": "timeseries total = sum(dt.service.request.count,default:0),\n           nonempty: true,\n           by: {dt.entity.service},\n           filter: in(dt.entity.service, array($ServiceID))\n| lookup \n[ \ntimeseries errors = sum(dt.service.request.failure_count,default:0),\n           nonempty: true,\n           by:{dt.entity.service},\n           filter: in(dt.entity.service, array($ServiceID))\n],\nsourceField:dt.entity.service, lookupField:dt.entity.service, prefix: \"request.\"\n| fieldsAdd failureRate = request.errors[] / total[] * 100\n| fieldsAdd service.name  = entityName(dt.entity.service)\n| fields  timeframe, \n          interval,\n          service.name,\n          dt.entity.service,\n          failureRate\n| sort arrayAvg(failureRate) desc          \n| limit 100",
+      "visualization": "lineChart",
+      "visualizationSettings": {
+        "chartSettings": {
+          "truncationMode": "middle",
+          "legend": {
+            "hidden": true
+          },
+          "leftYAxisSettings": {
+            "label": "Service failure count"
+          },
+          "xAxisLabel": "timeframe",
+          "xAxisScaling": "analyzedTimeframe",
+          "fieldMapping": {
+            "leftAxisValues": [
+              "failureRate"
+            ],
+            "timestamp": "timeframe"
+          },
+          "gapPolicy": "connect"
+        },
+        "dataMapping": {
+          "displayedFields": [
+            "service.name"
+          ]
+        },
+        "coloring": {
+          "colorRules": [
+            {
+              "field": "DT.name",
+              "comparator": "= *value*",
+              "value": "",
+              "type": "string",
+              "colorMode": "color-palette",
+              "colorPalette": "log-level"
+            }
+          ]
+        },
+        "autoSelectVisualization": false,
+        "unitsOverrides": [
+          {
+            "identifier": "failureRate",
+            "unitCategory": "percentage",
+            "baseUnit": "percent",
+            "displayUnit": null,
+            "decimals": 2,
+            "suffix": "",
+            "delimiter": false,
+            "added": 1744594771432
+          }
+        ]
+      },
+      "querySettings": {
+        "maxResultRecords": 1000,
+        "defaultScanLimitGbytes": 500,
+        "maxResultMegaBytes": 100,
+        "defaultSamplingRatio": 10,
+        "enableSampling": false
+      },
+      "davis": {
+        "enabled": false,
+        "davisVisualization": {
+          "isAvailable": true
+        }
+      }
+    },
+    "5": {
+      "title": "Service - 5xx Errors",
+      "description": "Number of HTTP 5xx Errors ( >= 500 and  <= 599 ) received by a given service.",
+      "type": "data",
+      "query": "timeseries errors = sum(dt.service.request.count,default:0),\n           nonempty: true,\n           by:{dt.entity.service},\n           filter:\n           http.response.status_code >= 500 and http.response.status_code <= 599 and\n           in(dt.entity.service, array($ServiceID))\n| fieldsAdd service.name  = entityName(dt.entity.service)\n| fields timeframe,\n         interval,\n         service.name,\n         dt.entity.service,\n         errors\n| sort arraySum(errors) desc\n| limit 100",
+      "visualization": "lineChart",
+      "visualizationSettings": {
+        "chartSettings": {
+          "truncationMode": "middle",
+          "legend": {
+            "hidden": true
+          },
+          "leftYAxisSettings": {
+            "label": "Service request count"
+          },
+          "xAxisLabel": "timeframe",
+          "xAxisScaling": "analyzedTimeframe",
+          "fieldMapping": {
+            "leftAxisValues": [
+              "errors"
+            ],
+            "timestamp": "timeframe"
+          },
+          "gapPolicy": "connect"
+        },
+        "dataMapping": {
+          "displayedFields": [
+            "service.name"
+          ]
+        },
+        "coloring": {
+          "colorRules": [
+            {
+              "field": "DT.name",
+              "comparator": "= *value*",
+              "value": "",
+              "type": "string",
+              "colorMode": "color-palette",
+              "colorPalette": "log-level"
+            }
+          ]
+        },
+        "autoSelectVisualization": false
+      },
+      "querySettings": {
+        "maxResultRecords": 1000,
+        "defaultScanLimitGbytes": 500,
+        "maxResultMegaBytes": 100,
+        "defaultSamplingRatio": 10,
+        "enableSampling": false
+      },
+      "davis": {
+        "enabled": false,
+        "davisVisualization": {
+          "isAvailable": true
+        }
+      }
+    },
+    "6": {
+      "title": "Service - 4xx Errors",
+      "description": "Number of HTTP 4xx Errors ( >= 400 and  <= 499 ) received by a given service.",
+      "type": "data",
+      "query": "timeseries errors = sum(dt.service.request.count,default:0),\n           nonempty: true,\n           by:{dt.entity.service},\n           filter:\n           http.response.status_code >= 400 and http.response.status_code <= 499 and\n           in(dt.entity.service, array($ServiceID))\n| fieldsAdd service.name  = entityName(dt.entity.service)\n| fields timeframe,\n         interval,\n         service.name,\n         dt.entity.service,\n         errors\n| sort arraySum(errors) desc\n| limit 100",
+      "visualization": "lineChart",
+      "visualizationSettings": {
+        "chartSettings": {
+          "truncationMode": "middle",
+          "legend": {
+            "hidden": true
+          },
+          "leftYAxisSettings": {
+            "label": "Service request count"
+          },
+          "xAxisLabel": "timeframe",
+          "xAxisScaling": "analyzedTimeframe",
+          "fieldMapping": {
+            "leftAxisValues": [
+              "errors"
+            ],
+            "timestamp": "timeframe"
+          },
+          "gapPolicy": "connect"
+        },
+        "dataMapping": {
+          "displayedFields": [
+            "service.name"
+          ]
+        },
+        "coloring": {
+          "colorRules": [
+            {
+              "field": "DT.name",
+              "comparator": "= *value*",
+              "value": "",
+              "type": "string",
+              "colorMode": "color-palette",
+              "colorPalette": "log-level"
+            }
+          ]
+        },
+        "autoSelectVisualization": false
+      },
+      "querySettings": {
+        "maxResultRecords": 1000,
+        "defaultScanLimitGbytes": 500,
+        "maxResultMegaBytes": 100,
+        "defaultSamplingRatio": 10,
+        "enableSampling": false
+      },
+      "davis": {
+        "enabled": false,
+        "davisVisualization": {
+          "isAvailable": true
+        }
+      }
+    },
+    "7": {
+      "title": "Process - CPU Usage %",
+      "description": "This metric is the percentage of the CPU usage of a process. The metric value is the sum of CPU time every process worker uses divided by the total available CPU time. The result is expressed in percentage. A value of 100% indicates that the process uses all available CPU resources of the host.",
+      "type": "data",
+      "query": "timeseries cpu = avg(dt.process.cpu.usage),\n           by: {dt.entity.process_group_instance,\n                dt.entity.host}, \n           filter: \n           in(dt.entity.process_group_instance, array($PGI))\n| fieldsAdd pgi = entityName(dt.entity.process_group_instance)\n| fieldsAdd host.name = entityName(dt.entity.host)\n| fields timeframe,\n         interval,\n         pgi,\n         dt.entity.process_group_instance,\n         host.name,\n         cpu\n| sort arrayAvg(cpu) desc\n| limit 100\n",
+      "visualization": "lineChart",
+      "visualizationSettings": {
+        "chartSettings": {
+          "truncationMode": "middle",
+          "legend": {
+            "hidden": true
+          },
+          "leftYAxisSettings": {
+            "label": "Process CPU usage"
+          },
+          "xAxisLabel": "timeframe",
+          "xAxisScaling": "analyzedTimeframe",
+          "fieldMapping": {
+            "leftAxisValues": [
+              "cpu"
+            ],
+            "timestamp": "timeframe"
+          },
+          "gapPolicy": "connect"
+        },
+        "dataMapping": {
+          "displayedFields": [
+            "pgi",
+            "host.name"
+          ]
+        },
+        "autoSelectVisualization": false
+      },
+      "querySettings": {
+        "maxResultRecords": 1000,
+        "defaultScanLimitGbytes": 500,
+        "maxResultMegaBytes": 100,
+        "defaultSamplingRatio": 10,
+        "enableSampling": false
+      },
+      "davis": {
+        "enabled": false,
+        "davisVisualization": {
+          "isAvailable": true
+        }
+      }
+    },
+    "8": {
+      "title": "Process - Memory Usage %",
+      "description": "This metric is the percentage of memory used by a process. It helps to identify processes with high memory resource consumption and memory leaks. The metric value is the sum of the memory used by every process worker divided by the total available memory in the host.",
+      "type": "data",
+      "query": "timeseries memory=avg(dt.process.memory.usage),\n           by: {dt.entity.process_group_instance, \n                dt.entity.host}, \n           filter: \n           in(dt.entity.process_group_instance, array($PGI))\n| fieldsAdd pgi = entityName(dt.entity.process_group_instance)\n| fieldsAdd host.name = entityName(dt.entity.host)\n| fields timeframe,\n         interval,\n         pgi,\n         dt.entity.process_group_instance,\n         host.name,\n         memory\n| sort arrayAvg(memory) desc\n| limit 100",
+      "visualization": "lineChart",
+      "visualizationSettings": {
+        "chartSettings": {
+          "truncationMode": "middle",
+          "legend": {
+            "hidden": true
+          },
+          "leftYAxisSettings": {
+            "label": "Process memory usage"
+          },
+          "xAxisLabel": "timeframe",
+          "xAxisScaling": "analyzedTimeframe",
+          "fieldMapping": {
+            "leftAxisValues": [
+              "memory"
+            ],
+            "timestamp": "timeframe"
+          },
+          "gapPolicy": "connect"
+        },
+        "dataMapping": {
+          "displayedFields": [
+            "pgi",
+            "host.name"
+          ]
+        },
+        "autoSelectVisualization": false
+      },
+      "querySettings": {
+        "maxResultRecords": 1000,
+        "defaultScanLimitGbytes": 500,
+        "maxResultMegaBytes": 100,
+        "defaultSamplingRatio": 10,
+        "enableSampling": false
+      },
+      "davis": {
+        "enabled": false,
+        "davisVisualization": {
+          "isAvailable": true
+        }
+      }
+    },
+    "9": {
+      "title": "Process - Memory Used",
+      "description": "This metric is the memory usage of a process. It helps to identify processes with high memory resource consumption and memory leaks. The metric value represents the sum of every process worker's used memory size (including shared memory).",
+      "type": "data",
+      "query": "timeseries memory = avg(dt.process.memory.working_set_size),\n           by: {dt.entity.process_group_instance, \n                dt.entity.host}, \n           filter: \n           in(dt.entity.process_group_instance, array($PGI))\n| fieldsAdd pgi = entityName(dt.entity.process_group_instance)\n| fieldsAdd host.name = entityName(dt.entity.host)\n| fields timeframe,\n         interval,\n         pgi,\n         dt.entity.process_group_instance,\n         host.name,\n         memory\n| sort arrayAvg(memory) desc\n| limit 100\n| limit 100",
+      "visualization": "lineChart",
+      "visualizationSettings": {
+        "chartSettings": {
+          "truncationMode": "middle",
+          "legend": {
+            "hidden": true
+          },
+          "leftYAxisSettings": {
+            "label": "Process memory"
+          },
+          "xAxisLabel": "timeframe",
+          "xAxisScaling": "analyzedTimeframe",
+          "fieldMapping": {
+            "leftAxisValues": [
+              "memory"
+            ],
+            "timestamp": "timeframe"
+          },
+          "gapPolicy": "connect"
+        },
+        "dataMapping": {
+          "displayedFields": [
+            "pgi",
+            "host.name"
+          ]
+        }
+      },
+      "querySettings": {
+        "maxResultRecords": 1000,
+        "defaultScanLimitGbytes": 500,
+        "maxResultMegaBytes": 100,
+        "defaultSamplingRatio": 10,
+        "enableSampling": false
+      },
+      "davis": {
+        "enabled": false,
+        "davisVisualization": {
+          "isAvailable": true
+        }
+      }
+    },
+    "10": {
+      "title": "Process  - Garbage Collection Time %",
+      "description": "The percentage of time the runtime was suspended because of garbage collection",
+      "type": "data",
+      "query": "timeseries gc_time = avg(dt.runtime.jvm.gc.suspension_time),\n           by:{dt.entity.process_group_instance,dt.entity.host},\n           filter: \n           in(dt.entity.process_group_instance, array($PGI))\n| append [timeseries gc_time = avg(dt.runtime.clr.gc.suspension_time),\n           by:{dt.entity.process_group_instance,dt.entity.host},\n           filter: \n           in(dt.entity.process_group_instance, array($PGI))           ]\n| append [timeseries gc_time = avg(dt.runtime.go.gc.suspension_time),\n           by:{dt.entity.process_group_instance,dt.entity.host},\n           filter: \n           in(dt.entity.process_group_instance, array($PGI))\n         ]\n| append [timeseries gc_time = avg(dt.runtime.nodejs.gc.suspension_time),\n           by:{dt.entity.process_group_instance,dt.entity.host},\n           filter: \n           in(dt.entity.process_group_instance, array($PGI))\n          ]\n| fieldsAdd pgi = entityName(dt.entity.process_group_instance)\n| fieldsAdd host.name = entityName(dt.entity.host)\n| fields  timeframe, \n          interval, \n          pgi,\n          dt.entity.process_group_instance,\n          host.name,\n          gc_time\n| sort arrayAvg(gc_time) desc\n| limit 100\n\n\n",
+      "visualization": "lineChart",
+      "visualizationSettings": {
+        "chartSettings": {
+          "truncationMode": "middle",
+          "legend": {
+            "hidden": true
+          },
+          "leftYAxisSettings": {
+            "label": "Process memory"
+          },
+          "xAxisLabel": "timeframe",
+          "xAxisScaling": "analyzedTimeframe",
+          "fieldMapping": {
+            "leftAxisValues": [
+              "gc_time"
+            ],
+            "timestamp": "timeframe"
+          },
+          "gapPolicy": "connect"
+        },
+        "dataMapping": {
+          "displayedFields": [
+            "pgi",
+            "host.name"
+          ]
+        }
+      },
+      "querySettings": {
+        "maxResultRecords": 1000,
+        "defaultScanLimitGbytes": 500,
+        "maxResultMegaBytes": 100,
+        "defaultSamplingRatio": 10,
+        "enableSampling": false
+      },
+      "davis": {
+        "enabled": false,
+        "davisVisualization": {
+          "isAvailable": true
+        }
+      }
+    },
+    "13": {
+      "title": "Service - Requests by Status Code",
+      "description": "Number of requests received by status code for a given service.",
+      "type": "data",
+      "query": "timeseries requests = sum(dt.service.request.count),\n           by:{http.response.status_code},\n           filter: in(dt.entity.service, array($ServiceID))\n| fields timeframe,\n         interval,\n         http.response.status_code,\n         requests\n| sort http.response.status_code asc\n| limit 100",
+      "visualization": "barChart",
+      "visualizationSettings": {
+        "dataMapping": {
+          "displayedFields": [
+            "http.response.status_code"
+          ]
+        },
+        "chartSettings": {
+          "truncationMode": "middle",
+          "legend": {
+            "hidden": true
+          },
+          "leftYAxisSettings": {
+            "label": "Service request count"
+          },
+          "xAxisLabel": "timeframe",
+          "xAxisScaling": "analyzedTimeframe",
+          "valueRepresentation": "relative",
+          "fieldMapping": {
+            "leftAxisValues": [
+              "requests"
+            ],
+            "timestamp": "timeframe"
+          }
+        },
+        "coloring": {
+          "colorRules": [
+            {
+              "field": "DT.name",
+              "comparator": "= *value*",
+              "value": "",
+              "type": "string",
+              "colorMode": "color-palette",
+              "colorPalette": "categorical"
+            },
+            {
+              "colorMode": "custom-color",
+              "type": "string",
+              "field": "DT.name",
+              "comparator": "=",
+              "customColor": "#0D9C29",
+              "value": "200"
+            },
+            {
+              "colorMode": "custom-color",
+              "type": "string",
+              "field": "DT.name",
+              "comparator": "=",
+              "customColor": {
+                "Default": "var(--dt-colors-charts-categorical-color-01-default, #134fc9)"
+              },
+              "value": "201"
+            },
+            {
+              "colorMode": "custom-color",
+              "type": "string",
+              "field": "DT.name",
+              "comparator": "=",
+              "customColor": {
+                "Default": "var(--dt-colors-charts-categorical-color-11-default, #627cfe)"
+              },
+              "value": "204"
+            },
+            {
+              "colorMode": "custom-color",
+              "type": "string",
+              "field": "DT.name",
+              "comparator": "=",
+              "customColor": {
+                "Default": "var(--dt-colors-charts-categorical-color-14-default, #d56b1a)"
+              },
+              "value": "403"
+            },
+            {
+              "colorMode": "custom-color",
+              "type": "string",
+              "field": "DT.name",
+              "comparator": "=",
+              "customColor": {
+                "Default": "var(--dt-colors-charts-loglevel-emergency-default, #ae132d)"
+              },
+              "value": "500"
+            }
+          ]
+        },
+        "autoSelectVisualization": false,
+        "unitsOverrides": [
+          {
+            "identifier": "Availability",
+            "unitCategory": "percentage",
+            "baseUnit": "percent",
+            "displayUnit": null,
+            "decimals": 2,
+            "suffix": "",
+            "delimiter": false,
+            "added": 1714406692260
+          },
+          {
+            "identifier": "Performance",
+            "unitCategory": "percentage",
+            "baseUnit": "percent",
+            "displayUnit": null,
+            "decimals": 2,
+            "suffix": "",
+            "delimiter": false,
+            "added": 1714406706391
+          },
+          {
+            "identifier": "Latency",
+            "unitCategory": "time",
+            "baseUnit": "microsecond",
+            "displayUnit": null,
+            "decimals": 2,
+            "suffix": "",
+            "delimiter": false,
+            "added": 1714406730982
+          }
+        ]
+      },
+      "querySettings": {
+        "maxResultRecords": 1000,
+        "defaultScanLimitGbytes": 500,
+        "maxResultMegaBytes": 100,
+        "defaultSamplingRatio": 10,
+        "enableSampling": false
+      },
+      "davis": {
+        "enabled": false,
+        "davisVisualization": {
+          "isAvailable": true
+        }
+      }
+    },
+    "14": {
+      "title": "",
+      "type": "data",
+      "query": "data record(a=\"METRICS\" )",
+      "visualization": "singleValue",
+      "visualizationSettings": {
+        "singleValue": {
+          "labelMode": "none",
+          "label": "a",
+          "recordField": "a",
+          "prefixIcon": "LineChartIcon",
+          "colorThresholdTarget": "background",
+          "trend": {
+            "isVisible": true
+          }
+        },
+        "coloring": {
+          "colorRules": [
+            {
+              "value": "0",
+              "comparator": "!=",
+              "field": "a",
+              "colorMode": "custom-color",
+              "customColor": {
+                "Default": "var(--dt-colors-charts-categorical-color-01-default, #134fc9)"
+              }
+            }
+          ]
+        }
+      },
+      "querySettings": {
+        "maxResultRecords": 1000,
+        "defaultScanLimitGbytes": 500,
+        "maxResultMegaBytes": 100,
+        "defaultSamplingRatio": 10,
+        "enableSampling": false
+      },
+      "davis": {
+        "enabled": false,
+        "davisVisualization": {
+          "isAvailable": true
+        }
+      }
+    },
+    "15": {
+      "title": "",
+      "type": "data",
+      "query": "timeseries {latency_p50 = median(dt.service.request.response_time),\n           latency_p90 = percentile(dt.service.request.response_time, 90),\n           latency_p99 = percentile(dt.service.request.response_time, 99),\n           requests = sum(dt.service.request.count), \n           errors = sum(dt.service.request.failure_count)},\n           by:{dt.entity.service},\n           filter: in(dt.entity.service, array($ServiceID))\n\n| lookup [ timeseries latency_avg = avg(dt.service.request.response_time),\n           by:{dt.entity.service},\n           filter:in(dt.entity.service, array($ServiceID))],\n            sourceField:dt.entity.service, lookupField:dt.entity.service,\n            prefix: \"latencyAvg.\"\n\n\n\n| lookup [ timeseries http_5xx = sum(dt.service.request.count,default: 0.0),\n           by:{dt.entity.service},\n           filter: (http.response.status_code >= 500 and http.response.status_code <= 599) and\n                   in(dt.entity.service, array($ServiceID))],\n            sourceField:dt.entity.service, lookupField:dt.entity.service,\n            prefix: \"http5xx.\"\n\n| lookup [ timeseries http_4xx = sum(dt.service.request.count,default: 0.0),\n           by:{dt.entity.service},\n           filter: (http.response.status_code >= 400 and http.response.status_code <= 499) and\n                   in(dt.entity.service, array($ServiceID))],\n            sourceField:dt.entity.service, lookupField:dt.entity.service,\n            prefix: \"http4xx.\"\n\n| lookup [fetch dt.davis.problems, from:now()-7h, to:now()\n         | filter event.status==\"ACTIVE\" and dt.davis.is_duplicate==false// and matchesPhrase(affected_entity_ids, \"SERVICE-\")\n         | expand affected_entity_ids\n         | summarize {Problems = countDistinct(display_id),\n               event.id = takeFirst(event.id),\n               event.kind = takeFirst(event.kind)}, \n               by:{affected_entity_ids}],\n  sourceField:dt.entity.service, lookupField:affected_entity_ids, \n  fields:{Problems, affected_entity_ids,event.id,event.kind}    \n\n| fieldsAdd Latency_Avg = arrayAvg(latencyAvg.latency_avg),\n            Latency_p50 = arrayAvg(latency_p50),\n            Latency_p90 = arrayAvg(latency_p90),\n            Latency_p99 = arrayAvg(latency_p99),\n            Requests = arraySum(requests), \n            Failures = arraySum(errors),\n           `5xx` = arraySum(http5xx.http_5xx),\n           `4xx` = arraySum(http4xx.http_4xx) \n| fieldsAdd FailureRate = (Failures/Requests) *100\n| fieldsAdd Service = entityName(dt.entity.service)\n| fieldsAdd dt.entity.process_group = entityAttr(dt.entity.service, \"runs_on\")\n| fieldsAdd dt.entity.process_group = dt.entity.process_group[dt.entity.process_group]\n| fieldsAdd LogQueryPart2 = \"\"\"\\\")\"\"\" \n| fieldsAdd LogQueryPart2 = encodeUrl(LogQueryPart2)\n| fieldsAdd LogErrorsLink = concat(\"[Logs](\",$LogsAppUrl,encodeurl(dt.entity.process_group),LogQueryPart2,$LogQueryTimeFrame,\")\")\n| fieldsAdd LogErrorsLink = replaceString(LogErrorsLink, \"+\", \"%20\")\n\n//| fieldsAdd PGI = $PGI\n| fields Status = if(Problems >= 0 , \"PROBLEM\",  else: \"HEALTHY\"),\n         Service = concat(Service,\n          \"[](https://\",$DynatraceTenant,\".apps.dynatrace.com/ui/apps/dynatrace.distributedtracing/explorer?filter=dt.entity.service+%3D+\",dt.entity.service,\"&tf=\",$dt_timeframe_from,\";\",$dt_timeframe_to,\")\"), \n         dt.entity.service,\n         StatusSort = if(Problems > 0, 0, else: 1),\n         Requests,\n         Latency_Avg,\n         Latency_p50,\n         Latency_p90,\n         Latency_p99,\n         FailureRate,\n         Failures,\n        `5xx` = if(isNull(`5xx`), 0, else:`5xx`),\n        `4xx` = if(isNull(`4xx`), 0, else:`4xx`),\n         event.id,\n         event.kind,\n        `Analyze Errors` = concat(\n          \"[Failures](https://\",$DynatraceTenant,\".apps.dynatrace.com/ui/apps/dynatrace.services/failure-analysis?filter=dt.entity.service+%3D+\",dt.entity.service,\"+AND+request.status_code+%3D+Failure+&tf=\",$dt_timeframe_from,\";\",$dt_timeframe_to,\")\", \" \",     \n          \"[5xx](https://\",$DynatraceTenant,\".apps.dynatrace.com/ui/apps/dynatrace.distributedtracing/explorer?filter=dt.entity.service+%3D+\",dt.entity.service,\"+AND+http.response.status_code+>%3D+500+AND+http.response.status_code+<%3D+599&tf=\",$dt_timeframe_from,\";\",$dt_timeframe_to,\")\", \" \",\n          \"[4xx](https://\",$DynatraceTenant,\".apps.dynatrace.com/ui/apps/dynatrace.distributedtracing/explorer?filter=dt.entity.service+%3D+\",dt.entity.service,\"+AND+http.response.status_code+>%3D+400+AND+http.response.status_code+<%3D+499&tf=\",$dt_timeframe_from,\";\",$dt_timeframe_to,\")\", \" \",\n          LogErrorsLink)\n\n         \n         \n         // `Analyze Errors` = concat(\n         //  \"[Failure Analysis](https://\",$DynatraceTenant,\".apps.dynatrace.com/ui/apps/dynatrace.services/failure-analysis?filter=dt.entity.service+%3D+\",dt.entity.service,\"+&tf=\",$dt_timeframe_from,\";\",$dt_timeframe_to,\")\", \" \",     \n         //  \"[Errors 5xx](https://\",$DynatraceTenant,\".apps.dynatrace.com/ui/apps/dynatrace.distributedtracing/explorer?filter=dt.entity.service+%3D+\",dt.entity.service,\"+AND+http.response.status_code+>%3D+500+AND+http.response.status_code+<%3D+599&tf=\",$dt_timeframe_from,\";\",$dt_timeframe_to,\")\", \" \",\n         //  \"[Errors 4xx](https://\",$DynatraceTenant,\".apps.dynatrace.com/ui/apps/dynatrace.distributedtracing/explorer?filter=dt.entity.service+%3D+\",dt.entity.service,\"+AND+http.response.status_code+>%3D+400+AND+http.response.status_code+<%3D+499&tf=\",$dt_timeframe_from,\";\",$dt_timeframe_to,\")\", \" \",\n         //  \"[Log Errors](https://\",$DynatraceTenant,\".apps.dynatrace.com/ui/apps/dynatrace.classic.logs.events/ui/logs-events?query=fetch%20logs%0A%7C%20filter%20matchesValue%28status%2C%20%22ERROR%22%29%20and%20matchesValue%28dt.entity.process_group%2C%20%22\",dt.entity.process_group,\"%22%29%0A%7C%20sort%20timestamp%20desc&gtf=c_\",unixMillisFromTimestamp(toTimestamp($dt_timeframe_from)),\"_\",unixMillisFromTimestamp(toTimestamp($dt_timeframe_to)),\"&advancedQueryMode=true\",\")\"\n         //  )\n\n        // `Analyze Errors` = concat(\n        //   \"[Errors 5xx](https://\",$DynatraceTenant,\".apps.dynatrace.com/ui/apps/dynatrace.distributedtracing/explorer?filter=dt.entity.service+%3D+\",dt.entity.service,\"+AND+http.response.status_code+>%3D+500+AND+http.response.status_code+<%3D+599&tf=\",$dt_timeframe_from,\";\",$dt_timeframe_to,\"&columns=start_time%2Cendpoint.name%2Cdt.entity.service.entity.name%2Cduration%2Crequest.status_code%2Chttp.response.status_code%2Cdt.entity.process_group.entity.name%2Cdt.entity.host.entity.name%2Cspan.events%5B%5D%5Bexception.type%5D&sidebar=u%2Cfalse\",\")\", \" \",\n        //   \"[Errors 4xx](https://\",$DynatraceTenant,\".apps.dynatrace.com/ui/apps/dynatrace.distributedtracing/explorer?filter=dt.entity.service+%3D+\",dt.entity.service,\"+AND+http.response.status_code+>%3D+400+AND+http.response.status_code+<%3D+499&tf=\",$dt_timeframe_from,\";\",$dt_timeframe_to,\"&columns=start_time%2Cendpoint.name%2Cdt.entity.service.entity.name%2Cduration%2Crequest.status_code%2Chttp.response.status_code%2Cdt.entity.process_group.entity.name%2Cdt.entity.host.entity.name%2Cspan.events%5B%5D%5Bexception.type%5D&sidebar=u%2Cfalse\",\")\")\n| sort StatusSort asc\n| fieldsRemove StatusSort\n| limit 1000",
+      "visualization": "table",
+      "visualizationSettings": {
+        "table": {
+          "columnOrder": [
+            "[\"Status\"]",
+            "[\"Service\"]",
+            "[\"dt.entity.service\"]",
+            "[\"Requests\"]",
+            "[\"Latency_Avg\"]",
+            "[\"Latency_p50\"]",
+            "[\"Latency_p90\"]",
+            "[\"Latency_p99\"]",
+            "[\"FailureRate\"]",
+            "[\"Failures\"]",
+            "[\"5xx\"]",
+            "[\"4xx\"]",
+            "[\"event.id\"]",
+            "[\"event.kind\"]",
+            "[\"Analyze Errors\"]"
+          ],
+          "columnTypeOverrides": [
+            {
+              "id": 803368.3000000119,
+              "fields": [
+                "Analyze Errors"
+              ],
+              "value": "markdown"
+            },
+            {
+              "id": 191362.59999996424,
+              "fields": [
+                "Service"
+              ],
+              "value": "markdown"
+            }
+          ],
+          "hiddenColumns": [
+            [
+              "dt.entity.service"
+            ],
+            [
+              "event.id"
+            ],
+            [
+              "event.kind"
+            ]
+          ]
+        },
+        "coloring": {
+          "colorRules": [
+            {
+              "value": "HEALTHY",
+              "comparator": "=",
+              "field": "Status",
+              "colorMode": "custom-color",
+              "customColor": "#0D9C29",
+              "metadata": {
+                "applyTo": "cell",
+                "fields": [
+                  "Status"
+                ]
+              }
+            },
+            {
+              "value": "PROBLEM",
+              "comparator": "=",
+              "field": "Status",
+              "colorMode": "custom-color",
+              "customColor": "#AE132D",
+              "metadata": {
+                "applyTo": "cell",
+                "fields": [
+                  "Status"
+                ]
+              }
+            },
+            {
+              "value": 0,
+              "comparator": "ΓëÑ",
+              "field": "Failures",
+              "colorMode": "custom-color",
+              "customColor": "#0D9C29",
+              "metadata": {
+                "applyTo": "cell",
+                "fields": [
+                  "Failures"
+                ]
+              }
+            },
+            {
+              "value": 1,
+              "comparator": "ΓëÑ",
+              "field": "Failures",
+              "colorMode": "custom-color",
+              "customColor": {
+                "Default": "var(--dt-colors-charts-loglevel-emergency-default, #ae132d)"
+              },
+              "metadata": {
+                "applyTo": "cell",
+                "fields": [
+                  "Failures"
+                ]
+              }
+            },
+            {
+              "value": 0,
+              "comparator": "ΓëÑ",
+              "field": "FailureRate",
+              "colorMode": "custom-color",
+              "customColor": "#0D9C29",
+              "metadata": {
+                "applyTo": "cell",
+                "fields": [
+                  "FailureRate"
+                ]
+              }
+            },
+            {
+              "value": 2,
+              "comparator": "ΓëÑ",
+              "field": "FailureRate",
+              "colorMode": "custom-color",
+              "customColor": {
+                "Default": "var(--dt-colors-charts-loglevel-emergency-default, #ae132d)"
+              },
+              "metadata": {
+                "applyTo": "cell",
+                "fields": [
+                  "FailureRate"
+                ]
+              }
+            },
+            {
+              "value": 0,
+              "comparator": "ΓëÑ",
+              "field": "5xx",
+              "colorMode": "custom-color",
+              "customColor": "#0D9C29",
+              "metadata": {
+                "applyTo": "cell",
+                "fields": [
+                  "5xx"
+                ]
+              }
+            },
+            {
+              "value": 1,
+              "comparator": "ΓëÑ",
+              "field": "5xx",
+              "colorMode": "custom-color",
+              "customColor": "#C21930",
+              "metadata": {
+                "applyTo": "cell",
+                "fields": [
+                  "5xx"
+                ]
+              }
+            },
+            {
+              "value": 0,
+              "comparator": "ΓëÑ",
+              "field": "4xx",
+              "colorMode": "custom-color",
+              "customColor": "#0D9C29",
+              "metadata": {
+                "applyTo": "cell",
+                "fields": [
+                  "4xx"
+                ]
+              }
+            },
+            {
+              "value": 1,
+              "comparator": "ΓëÑ",
+              "field": "4xx",
+              "colorMode": "custom-color",
+              "customColor": "#C21930",
+              "metadata": {
+                "applyTo": "cell",
+                "fields": [
+                  "4xx"
+                ]
+              }
+            }
+          ]
+        },
+        "autoSelectVisualization": false,
+        "unitsOverrides": [
+          {
+            "identifier": "Latency_p50",
+            "unitCategory": "time",
+            "baseUnit": "microsecond",
+            "displayUnit": null,
+            "decimals": 2,
+            "suffix": "",
+            "delimiter": false,
+            "added": 1714406730982
+          },
+          {
+            "identifier": "Latency_p90",
+            "unitCategory": "time",
+            "baseUnit": "microsecond",
+            "displayUnit": null,
+            "decimals": 2,
+            "suffix": "",
+            "delimiter": false,
+            "added": 1715002954070
+          },
+          {
+            "identifier": "Latency_p99",
+            "unitCategory": "time",
+            "baseUnit": "microsecond",
+            "displayUnit": null,
+            "decimals": 2,
+            "suffix": "",
+            "delimiter": false,
+            "added": 1715003431114
+          },
+          {
+            "identifier": "Requests",
+            "unitCategory": "unspecified",
+            "baseUnit": "none",
+            "displayUnit": null,
+            "decimals": 0,
+            "suffix": "",
+            "delimiter": false,
+            "added": 1718630613563
+          },
+          {
+            "identifier": "Failures",
+            "unitCategory": "unspecified",
+            "baseUnit": "none",
+            "displayUnit": null,
+            "decimals": 0,
+            "suffix": "",
+            "delimiter": false,
+            "added": 1718630622004
+          },
+          {
+            "identifier": "5xx",
+            "unitCategory": "unspecified",
+            "baseUnit": "none",
+            "displayUnit": null,
+            "decimals": 0,
+            "suffix": "",
+            "delimiter": false,
+            "added": 1718853295595
+          },
+          {
+            "identifier": "4xx",
+            "unitCategory": "unspecified",
+            "baseUnit": "none",
+            "displayUnit": null,
+            "decimals": 0,
+            "suffix": "",
+            "delimiter": false,
+            "added": 1721450903714
+          },
+          {
+            "identifier": "FailureRate",
+            "unitCategory": "percentage",
+            "baseUnit": "percent",
+            "displayUnit": null,
+            "decimals": 2,
+            "suffix": "",
+            "delimiter": false,
+            "added": 1721451329942
+          },
+          {
+            "identifier": "Latency_Avg",
+            "unitCategory": "time",
+            "baseUnit": "microsecond",
+            "displayUnit": null,
+            "decimals": 2,
+            "suffix": "",
+            "delimiter": false,
+            "added": 1745640126767
+          }
+        ]
+      },
+      "querySettings": {
+        "maxResultRecords": 1000,
+        "defaultScanLimitGbytes": 500,
+        "maxResultMegaBytes": 100,
+        "defaultSamplingRatio": 10,
+        "enableSampling": false
+      },
+      "davis": {
+        "enabled": false,
+        "davisVisualization": {
+          "isAvailable": true
+        }
+      }
+    },
+    "16": {
+      "title": "",
+      "type": "data",
+      "query": "data record(a=\"SERVICE SUMMARY\")",
+      "visualization": "singleValue",
+      "visualizationSettings": {
+        "singleValue": {
+          "labelMode": "none",
+          "label": " ",
+          "recordField": "a",
+          "prefixIcon": "ServicesIcon",
+          "colorThresholdTarget": "background",
+          "trend": {
+            "isVisible": true
+          }
+        },
+        "coloring": {
+          "colorRules": [
+            {
+              "value": "0",
+              "comparator": "!=",
+              "field": "a",
+              "colorMode": "custom-color",
+              "customColor": {
+                "Default": "var(--dt-colors-charts-categorical-color-01-default, #134fc9)"
+              }
+            }
+          ]
+        }
+      },
+      "querySettings": {
+        "maxResultRecords": 1000,
+        "defaultScanLimitGbytes": 500,
+        "maxResultMegaBytes": 100,
+        "defaultSamplingRatio": 10,
+        "enableSampling": false
+      },
+      "davis": {
+        "enabled": false,
+        "davisVisualization": {
+          "isAvailable": true
+        }
+      }
+    },
+    "19": {
+      "title": "K8s Workload - CPU Usage",
+      "description": "Total CPU consumed (user usage + system usage) by container.",
+      "type": "data",
+      "query": "timeseries cpu=avg(dt.kubernetes.container.cpu_usage),  \n           by: {k8s.namespace.name, \n                dt.entity.kubernetes_cluster, \n                dt.entity.cloud_application_namespace, \n                dt.entity.cloud_application}, \nfilter: in(dt.entity.cloud_application, array($WorkloadID)) \n| fieldsAdd workload = entityName(dt.entity.cloud_application)\n| fields timeframe,\n         interval,\n         workload,\n         cpu,\n         dt.entity.cloud_application,\n         k8s.namespace.name,\n         dt.entity.cloud_application_namespace,\n         dt.entity.kubernetes_cluster\n| sort arrayAvg(cpu) desc\n| limit 20",
+      "visualization": "lineChart",
+      "visualizationSettings": {
+        "chartSettings": {
+          "truncationMode": "middle",
+          "legend": {
+            "hidden": true
+          },
+          "leftYAxisSettings": {
+            "label": "Kubernetes: Container - CPU usage"
+          },
+          "xAxisLabel": "timeframe",
+          "xAxisScaling": "analyzedTimeframe",
+          "fieldMapping": {
+            "leftAxisValues": [
+              "cpu"
+            ],
+            "timestamp": "timeframe"
+          }
+        },
+        "dataMapping": {
+          "displayedFields": [
+            "workload",
+            "k8s.namespace.name"
+          ]
+        },
+        "autoSelectVisualization": true
+      },
+      "querySettings": {
+        "maxResultRecords": 1000,
+        "defaultScanLimitGbytes": 500,
+        "maxResultMegaBytes": 1,
+        "defaultSamplingRatio": 10,
+        "enableSampling": false
+      },
+      "davis": {
+        "enabled": false,
+        "davisVisualization": {
+          "isAvailable": true
+        }
+      }
+    },
+    "20": {
+      "title": "K8s Workload - Memory Usage",
+      "description": "The current working set memory (memory that cannot be reclaimed under pressure) by container and memory limits",
+      "type": "data",
+      "query": "timeseries memory=avg(dt.kubernetes.container.memory_working_set),\n           limits=avg(dt.kubernetes.container.limits_memory),\n           by: {k8s.namespace.name, \n                dt.entity.kubernetes_cluster, \n                dt.entity.cloud_application_namespace, \n                dt.entity.cloud_application }, \n           filter: in(dt.entity.cloud_application, array($WorkloadID))\n| fieldsAdd workload = entityName(dt.entity.cloud_application)\n| fields timeframe,\n         interval,\n         workload,\n         memory,\n         limits,\n         dt.entity.cloud_application,\n         k8s.namespace.name,\n         dt.entity.cloud_application_namespace,\n         dt.entity.kubernetes_cluster\n| sort arrayAvg(memory) desc\n| limit 50",
+      "visualization": "lineChart",
+      "visualizationSettings": {
+        "chartSettings": {
+          "truncationMode": "middle",
+          "legend": {
+            "hidden": true
+          },
+          "leftYAxisSettings": {
+            "label": "Kubernetes: Container - CPU usage"
+          },
+          "xAxisLabel": "timeframe",
+          "xAxisScaling": "analyzedTimeframe",
+          "fieldMapping": {
+            "leftAxisValues": [
+              "memory",
+              "limits"
+            ],
+            "timestamp": "timeframe"
+          }
+        },
+        "dataMapping": {
+          "displayedFields": [
+            "workload",
+            "k8s.namespace.name",
+            "memory",
+            "limits"
+          ]
+        },
+        "autoSelectVisualization": false
+      },
+      "querySettings": {
+        "maxResultRecords": 1000,
+        "defaultScanLimitGbytes": 500,
+        "maxResultMegaBytes": 1,
+        "defaultSamplingRatio": 10,
+        "enableSampling": false
+      },
+      "davis": {
+        "enabled": false,
+        "davisVisualization": {
+          "isAvailable": true
+        }
+      }
+    },
+    "21": {
+      "title": "Services  (Current Status)",
+      "type": "data",
+      "query": "fetch dt.entity.service\n| filter in(id, array($ServiceID))\n| filter serviceType != \"DATABASE_SERVICE\"\n| lookup [\n  fetch dt.davis.problems\n  | filter event.status == \"ACTIVE\"\n  | expand affected_entity_ids\n], sourceField:id, lookupField:affected_entity_ids\n| fieldsAdd affected = if(isNotNull(lookup.affected_entity_ids), \"Problem\", else: \"Healthy\")\n| fields affected, \n         id, \n         entity.name, \n         event.id = lookup.event.id, \n         event.kind = lookup.event.kind\n| sort affected desc\n",
+      "visualization": "honeycomb",
+      "visualizationSettings": {
+        "honeycomb": {
+          "legend": {
+            "hidden": true
+          },
+          "dataMappings": {
+            "value": "affected"
+          },
+          "displayedFields": [
+            "entity.name"
+          ]
+        },
+        "coloring": {
+          "colorRules": [
+            {
+              "colorMode": "custom-color",
+              "customColor": {
+                "Default": "var(--dt-colors-charts-loglevel-emergency-default, #ae132d)"
+              },
+              "field": "affected",
+              "value": "Problem",
+              "comparator": "="
+            },
+            {
+              "colorMode": "custom-color",
+              "customColor": "#0D9C29",
+              "field": "affected",
+              "value": "Healthy",
+              "comparator": "="
+            }
+          ]
+        },
+        "autoSelectVisualization": false
+      },
+      "querySettings": {
+        "maxResultRecords": 2000,
+        "defaultScanLimitGbytes": 500,
+        "maxResultMegaBytes": 1,
+        "defaultSamplingRatio": 10,
+        "enableSampling": false
+      },
+      "davis": {
+        "enabled": false,
+        "davisVisualization": {
+          "isAvailable": true
+        }
+      },
+      "timeframe": {
+        "tileTimeframeEnabled": true,
+        "tileTimeframe": {
+          "from": "now()-7h",
+          "to": "now()"
+        }
+      }
+    },
+    "22": {
+      "title": "Problems List",
+      "type": "data",
+      "query": "fetch dt.davis.problems\n| filter `dt.davis.is_duplicate` == false\n| sort timestamp desc\n| expand affected_entity_ids\n| filter in(affected_entity_ids, array($ServiceID)) or \n         in(affected_entity_ids, array($WorkloadID)) \n// Lookup for affected_entity_ids and root_cause_entity_id Start\n\n\n\n| lookup [fetch dt.entity.service], sourceField:affected_entity_ids, lookupField: id, prefix:\"lookup.affected.entity.services\"\n| lookup [fetch dt.entity.process_group_instance], sourceField:affected_entity_ids, lookupField: id, prefix:\"lookup.affected.entity.pgi\"\n| lookup [fetch dt.entity.application], sourceField:affected_entity_ids, lookupField: id, prefix:\"lookup.affected.entity.applications\"\n| lookup [fetch dt.entity.mobile_application], sourceField:affected_entity_ids, lookupField: id, prefix:\"lookup.affected.entity.mobile\"\n| lookup [fetch dt.entity.custom_application], sourceField:affected_entity_ids, lookupField: id, prefix:\"lookup.affected.entity.customapplication\"\n| lookup [fetch dt.entity.cloud_application], sourceField:affected_entity_ids, lookupField: id, prefix:\"lookup.affected.entity.cloudapplication\"\n| lookup [fetch dt.entity.synthetic_test], sourceField:affected_entity_ids, lookupField: id, prefix:\"lookup.affected.entity.synthetictest\"\n| lookup [fetch dt.entity.http_check], sourceField:affected_entity_ids, lookupField: id, prefix:\"lookup.affected.entity.httpcheck\"\n| lookup [fetch dt.entity.multiprotocol_monitor], sourceField:affected_entity_ids, lookupField: id, prefix:\"lookup.affected.entity.multiprotocolmonitor\"\n| lookup [fetch dt.entity.kubernetes_cluster], sourceField:affected_entity_ids, lookupField: id, prefix:\"lookup.affected.entity.kubernetescluster\"\n| lookup [fetch dt.entity.host], sourceField:affected_entity_ids, lookupField: id, prefix:\"lookup.affected.entity.hosts\"\n| lookup [fetch dt.entity.custom_device], sourceField:affected_entity_ids, lookupField: id, prefix:\"lookup.affected.entity.customdevices\"\n| lookup [fetch dt.entity.hypervisor], sourceField:affected_entity_ids, lookupField: id, prefix:\"lookup.affected.entity.hypervisor\"\n| lookup [fetch dt.entity.environment], sourceField:affected_entity_ids, lookupField: id, prefix:\"lookup.affected.entity.environment\"\n// Lookup for affected_entity_ids and root_cause_entity_id End\n\n// Summarzation Start - Group Probem Events by Problem ID\n| summarize {startTime = takeFirst(event.start),\n            endTime = takeFirst(event.end),\n            problemClosedDuration = takeFirst(resolved_problem_duration),\n            status = takeFirst(event.status),\n            event.name = takeFirst(event.name),\n            severityLevel = takeFirst(event.category),\n            affected = takeFirst(affected_entity_ids),\n            rootCause = takeFirst(root_cause_entity_name),\n            dt.davis.is_duplicate = takeFirst(dt.davis.is_duplicate),\n            affectedServices = collectDistinct(lookup.affected.entity.servicesentity.name),\n            affectedPGI = collectDistinct(lookup.affected.entity.pgientity.name),\n            affectedApplications = collectDistinct(lookup.affected.entity.applicationsentity.name),\n            affectedMobile = collectDistinct(lookup.affected.entity.mobileentity.name),\n            affectedCustomApplication = collectDistinct(lookup.affected.entity.customapplicationentity.name),\n            affectedCloudApplication = collectDistinct(lookup.affected.entity.cloudapplicationentity.name),\n            affectedSyntheticTest = collectDistinct(lookup.affected.entity.synthetictestentity.name),\n            affectedHttpCheck = collectDistinct(lookup.affected.entity.httpcheckentity.name),\n            affectedMultiprotocolMonitor = collectDistinct(lookup.affected.entity.multiprotocolmonitorentity.name),\n            affectedKubernetesCluster = collectDistinct(lookup.affected.entity.kubernetesclusterentity.name),\n            affectedHosts = collectDistinct(lookup.affected.entity.hostsentity.name),\n            affectedCustomDevices = collectDistinct(lookup.affected.entity.customdevicesentity.name),\n            affectedHypervisor = collectDistinct(lookup.affected.entity.hypervisorentity.name),\n            affectedEnvironment = collectDistinct(lookup.affected.entity.environmententity.name),\n            event.id = takeFirst(event.id)}, \n            by:{display_id, event.kind}\n//| filter `dt.davis.is_duplicate` == false\n| fieldsAdd currentTime = toTimestamp(now())\n| fieldsAdd Description = concat(display_id,\" - \",event.name)\n// Summarzation End - Group Probem Events by Problem ID\n\n\n///https://guu84124.apps.dynatrace.com/ui/apps/dynatrace.classic.problems/#problems/problemdetails;gtf=-2h;gf=-4279023605659327282;pid=5910121192761273425_1744516020000V2\n// Final Result Start\n| fields Status = status,       \n         Description = concat(\"[\",Description,\"](https://\",$DynatraceTenant,\".apps.dynatrace.com/ui/apps/dynatrace.davis.problems/problem/\",event.id,\")\"),    \n         Affected = arrayRemoveNulls(arrayConcat(affectedApplications,affectedMobile,affectedCustomApplication,affectedCloudApplication,affectedSyntheticTest,affectedHttpCheck,affectedServices,affectedPGI,affectedKubernetesCluster,affectedHosts,affectedHypervisor,affectedCustomDevices,affectedEnvironment,affectedMultiprotocolMonitor)),\n         RootCause = if(isNotNull(rootCause), rootCause, else:\"\"),\n         StartTime = startTime,\n         EndTime =  if((status == \"ACTIVE\"),\"In Progress\", \n                    else:if((status == \"CLOSED\"),endTime)),   \n         Duration = if((status == \"CLOSED\"),problemClosedDuration,\n                    else:if((status == \"ACTIVE\"), currentTime-startTime)),\n         event.id,\n         event.kind\n| sort StartTime, direction:\"descending\"\n| sort Status, direction:\"ascending\"\n// Final Result End\n\n\n",
+      "visualization": "table",
+      "visualizationSettings": {
+        "table": {
+          "columnTypeOverrides": [
+            {
+              "id": 420834.90000000596,
+              "fields": [
+                "Description"
+              ],
+              "value": "markdown"
+            }
+          ],
+          "hiddenColumns": [
+            [
+              "event.id"
+            ],
+            [
+              "event.kind"
+            ]
+          ],
+          "linewrapEnabled": true,
+          "rowDensity": "default",
+          "lineWrapIds": [
+            [
+              "Description"
+            ],
+            [
+              "Affected"
+            ]
+          ],
+          "sortBy": [
+            {
+              "columnId": "[\"RootCause\"]",
+              "direction": "descending"
+            }
+          ],
+          "columnWidths": {
+            "[\"Status\"]": 91,
+            "[\"Problem\"]": 290,
+            "[\"Affected\"]": 321,
+            "[\"RootCause\"]": 248,
+            "[\"StartTime\"]": 144,
+            "[\"EndTime\"]": 211,
+            "[\"Duration (min)\"]": 141,
+            "[\"event.id\"]": 301
+          }
+        },
+        "coloring": {
+          "colorRules": [
+            {
+              "value": "CLOSED",
+              "comparator": "=",
+              "field": "Status",
+              "colorMode": "custom-color",
+              "customColor": "#0D9C29",
+              "metadata": {
+                "applyTo": "cell",
+                "fields": [
+                  "Status"
+                ]
+              }
+            },
+            {
+              "value": "ACTIVE",
+              "comparator": "=",
+              "field": "Status",
+              "colorMode": "custom-color",
+              "customColor": {
+                "Default": "var(--dt-colors-charts-loglevel-emergency-default, #ae132d)"
+              },
+              "metadata": {
+                "applyTo": "cell",
+                "fields": [
+                  "Status"
+                ]
+              }
+            }
+          ]
+        },
+        "unitsOverrides": []
+      },
+      "querySettings": {
+        "maxResultRecords": 1000,
+        "defaultScanLimitGbytes": 500,
+        "maxResultMegaBytes": 100,
+        "defaultSamplingRatio": 10,
+        "enableSampling": false
+      },
+      "davis": {
+        "davisVisualization": {}
+      }
+    },
+    "23": {
+      "title": "",
+      "type": "data",
+      "query": "data record(a=\"REQUESTS SUMMARY\")",
+      "visualization": "singleValue",
+      "visualizationSettings": {
+        "singleValue": {
+          "labelMode": "none",
+          "label": " ",
+          "recordField": "a",
+          "prefixIcon": "RequestIcon",
+          "colorThresholdTarget": "background",
+          "trend": {
+            "isVisible": true
+          }
+        },
+        "coloring": {
+          "colorRules": [
+            {
+              "value": "0",
+              "comparator": "!=",
+              "field": "a",
+              "colorMode": "custom-color",
+              "customColor": {
+                "Default": "var(--dt-colors-charts-categorical-color-01-default, #134fc9)"
+              }
+            }
+          ]
+        }
+      },
+      "querySettings": {
+        "maxResultRecords": 1000,
+        "defaultScanLimitGbytes": 500,
+        "maxResultMegaBytes": 100,
+        "defaultSamplingRatio": 10,
+        "enableSampling": false
+      },
+      "davis": {
+        "enabled": false,
+        "davisVisualization": {
+          "isAvailable": true
+        }
+      }
+    },
+    "24": {
+      "title": "",
+      "type": "data",
+      "query": "fetch spans, samplingRatio: 1, scanLimitGBytes: 50\n\t\n// if in \"requests\" mode\n| filter request.is_root_span == true AND isNotNull(endpoint.name) \n// based on the applied filters\n| filter matchesValue(`dt.entity.service`, $ServiceID)\n\t\n\t// calculate multiplicity based on sampling\n| fieldsAdd sampling.probability = (power(2, 56) - coalesce(sampling.threshold, 0)) * power(2, -56), \n            sampling.multiplicity = 1/sampling.probability, \n            multiplicity = coalesce(sampling.multiplicity, 1) * coalesce(aggregation.count, 1) * dt.system.sampling_ratio\n\t\n\t// construct fields\n| fieldsAdd request.status_code = if(request.is_failed, \"Failure\", else: \"Success\")\n\t\n| fieldsAdd aggregation.duration_avg = coalesce(aggregation.duration_sum/aggregation.count, duration)\n\t// add entity lookups\n| fieldsAdd dt.entity.service.entity.name = entityAttr(dt.entity.service, \"entity.name\")\n| summarize {\n\t    dt.entity.service = takeFirst(dt.entity.service),\n\t    Latency_Avg = sum(aggregation.duration_avg*multiplicity)/sum(multiplicity),\n\t    Latency_p50 = percentile(duration, 50),\n\t    Latency_p90 = percentile(duration, 90),\n\t    Latency_p99 = percentile(duration, 99),\n\t    Requests = sum(`multiplicity`),\n\t    Failures = sum(if(request.status_code == \"Failure\", `multiplicity`, else: 0)),\n\t    FailureRate = round(toDouble(sum(if(request.status_code == \"Failure\", `multiplicity`, else: 0)) / sum(`multiplicity`)), decimals: 3),\n        `5xx` = sum(if(http.response.status_code >= 500 and http.response.status_code <= 599, `multiplicity`, else: 0)),\n        `4xx` = sum(if(http.response.status_code >= 400 and http.response.status_code <= 499, `multiplicity`, else: 0))\n        }, by: {\n\t    dt.entity.service.entity.name,\n\t    endpoint.name,\n\t    dt.system.sampling_ratio\n\t  }\n| fieldsAdd Service = entityName(dt.entity.service)\n| filter isNotNull(endpoint.name)\n| fields Service,\n         Request = concat(endpoint.name,\n          \"[](https://\",$DynatraceTenant,\".apps.dynatrace.com/ui/apps/dynatrace.distributedtracing/explorer?filter=dt.entity.service+%3D+\",dt.entity.service,\"+AND+endpoint.name+%3D+\",endpoint.name,\"&tf=\",$dt_timeframe_from,\";\",$dt_timeframe_to,\")\"), \n         Requests,         \n         Latency_Avg,\n         Latency_p50,\n         Latency_p90,\n         Latency_p99,\n         FailureRate = FailureRate * 100,\n         Failures,\n         `5xx`,\n         `4xx`,\n         `Analyze Errors` = concat(\n          \"[5xx](https://\",$DynatraceTenant,\".apps.dynatrace.com/ui/apps/dynatrace.distributedtracing/explorer?filter=dt.entity.service+%3D+\",dt.entity.service,\"+AND+endpoint.name+%3D+\",endpoint.name,\"+AND+http.response.status_code+>%3D+500+AND+http.response.status_code+<%3D+599&tf=\",$dt_timeframe_from,\";\",$dt_timeframe_to,\"&columns=start_time%2Cendpoint.name%2Cdt.entity.service.entity.name%2Cduration%2Crequest.status_code%2Chttp.response.status_code%2Cdt.entity.process_group.entity.name%2Cdt.entity.host.entity.name%2Cspan.events%5B%5D%5Bexception.type%5D&sidebar=u%2Cfalse\",\")\", \" \",\n          \"[4xx](https://\",$DynatraceTenant,\".apps.dynatrace.com/ui/apps/dynatrace.distributedtracing/explorer?filter=dt.entity.service+%3D+\",dt.entity.service,\"+AND+endpoint.name+%3D+\",endpoint.name,\"+AND+http.response.status_code+>%3D+400+AND+http.response.status_code+<%3D+499&tf=\",$dt_timeframe_from,\";\",$dt_timeframe_to,\"&columns=start_time%2Cendpoint.name%2Cdt.entity.service.entity.name%2Cduration%2Crequest.status_code%2Chttp.response.status_code%2Cdt.entity.process_group.entity.name%2Cdt.entity.host.entity.name%2Cspan.events%5B%5D%5Bexception.type%5D&sidebar=u%2Cfalse\",\")\")\n| sort Requests desc  ",
+      "visualization": "table",
+      "visualizationSettings": {
+        "table": {
+          "columnTypeOverrides": [
+            {
+              "id": 7278905.5,
+              "fields": [
+                "Request"
+              ],
+              "value": "markdown"
+            },
+            {
+              "id": 358353.19999999553,
+              "fields": [
+                "Analyze Errors"
+              ],
+              "value": "markdown"
+            }
+          ]
+        },
+        "coloring": {
+          "colorRules": [
+            {
+              "value": 1,
+              "comparator": "ΓëÑ",
+              "field": "Failures",
+              "colorMode": "custom-color",
+              "customColor": {
+                "Default": "var(--dt-colors-charts-loglevel-emergency-default, #ae132d)"
+              },
+              "metadata": {
+                "applyTo": "cell",
+                "fields": [
+                  "Failures"
+                ]
+              }
+            },
+            {
+              "value": 0,
+              "comparator": "=",
+              "field": "Failures",
+              "colorMode": "custom-color",
+              "customColor": "#0D9C29",
+              "metadata": {
+                "applyTo": "cell",
+                "fields": [
+                  "Failures"
+                ]
+              }
+            },
+            {
+              "value": 0,
+              "comparator": "ΓëÑ",
+              "field": "FailureRate",
+              "colorMode": "custom-color",
+              "customColor": "#0D9C29",
+              "metadata": {
+                "applyTo": "cell",
+                "fields": [
+                  "FailureRate"
+                ]
+              }
+            },
+            {
+              "value": 1,
+              "comparator": "ΓëÑ",
+              "field": "FailureRate",
+              "colorMode": "custom-color",
+              "customColor": {
+                "Default": "var(--dt-colors-charts-categorical-color-14-default, #d56b1a)"
+              },
+              "metadata": {
+                "applyTo": "cell",
+                "fields": [
+                  "FailureRate"
+                ]
+              }
+            },
+            {
+              "value": 2,
+              "comparator": "ΓëÑ",
+              "field": "FailureRate",
+              "colorMode": "custom-color",
+              "customColor": {
+                "Default": "var(--dt-colors-charts-loglevel-emergency-default, #ae132d)"
+              },
+              "metadata": {
+                "applyTo": "cell",
+                "fields": [
+                  "FailureRate"
+                ]
+              }
+            },
+            {
+              "value": 0,
+              "comparator": ">",
+              "field": "5xx",
+              "colorMode": "custom-color",
+              "customColor": {
+                "Default": "var(--dt-colors-charts-loglevel-emergency-default, #ae132d)"
+              },
+              "metadata": {
+                "applyTo": "cell",
+                "fields": [
+                  "5xx"
+                ]
+              }
+            },
+            {
+              "value": 0,
+              "comparator": "=",
+              "field": "5xx",
+              "colorMode": "custom-color",
+              "customColor": "#0D9C29",
+              "metadata": {
+                "applyTo": "cell",
+                "fields": [
+                  "5xx"
+                ]
+              }
+            },
+            {
+              "value": 0,
+              "comparator": ">",
+              "field": "4xx",
+              "colorMode": "custom-color",
+              "customColor": {
+                "Default": "var(--dt-colors-charts-categorical-color-14-default, #d56b1a)"
+              },
+              "metadata": {
+                "applyTo": "cell",
+                "fields": [
+                  "4xx"
+                ]
+              }
+            },
+            {
+              "value": 0,
+              "comparator": "=",
+              "field": "4xx",
+              "colorMode": "custom-color",
+              "customColor": "#0D9C29",
+              "metadata": {
+                "applyTo": "cell",
+                "fields": [
+                  "4xx"
+                ]
+              }
+            }
+          ]
+        },
+        "autoSelectVisualization": false,
+        "unitsOverrides": [
+          {
+            "identifier": "Requests",
+            "unitCategory": "unspecified",
+            "baseUnit": "none",
+            "displayUnit": null,
+            "decimals": 0,
+            "suffix": "",
+            "delimiter": false,
+            "added": 1745641318045
+          },
+          {
+            "identifier": "Failures",
+            "unitCategory": "unspecified",
+            "baseUnit": "none",
+            "displayUnit": null,
+            "decimals": 0,
+            "suffix": "",
+            "delimiter": false,
+            "added": 1745641331831
+          },
+          {
+            "identifier": "FailureRate",
+            "unitCategory": "percentage",
+            "baseUnit": "percent",
+            "displayUnit": null,
+            "decimals": 2,
+            "suffix": "",
+            "delimiter": false,
+            "added": 1745641342975
+          },
+          {
+            "identifier": "5xx",
+            "unitCategory": "unspecified",
+            "baseUnit": "none",
+            "displayUnit": null,
+            "decimals": 0,
+            "suffix": "",
+            "delimiter": false,
+            "added": 1745884717094
+          },
+          {
+            "identifier": "4xx",
+            "unitCategory": "unspecified",
+            "baseUnit": "none",
+            "displayUnit": null,
+            "decimals": 0,
+            "suffix": "",
+            "delimiter": false,
+            "added": 1745884724710
+          }
+        ]
+      },
+      "querySettings": {
+        "maxResultRecords": 1000,
+        "defaultScanLimitGbytes": 500,
+        "maxResultMegaBytes": 10,
+        "defaultSamplingRatio": 10,
+        "enableSampling": false
+      },
+      "davis": {
+        "enabled": false,
+        "davisVisualization": {
+          "isAvailable": true
+        }
+      }
+    }
+  },
+  "layouts": {
+    "0": {
+      "x": 0,
+      "y": 18,
+      "w": 6,
+      "h": 4
+    },
+    "1": {
+      "x": 6,
+      "y": 18,
+      "w": 6,
+      "h": 4
+    },
+    "2": {
+      "x": 12,
+      "y": 18,
+      "w": 6,
+      "h": 4
+    },
+    "3": {
+      "x": 6,
+      "y": 22,
+      "w": 6,
+      "h": 4
+    },
+    "4": {
+      "x": 18,
+      "y": 18,
+      "w": 6,
+      "h": 4
+    },
+    "5": {
+      "x": 12,
+      "y": 22,
+      "w": 6,
+      "h": 4
+    },
+    "6": {
+      "x": 18,
+      "y": 22,
+      "w": 6,
+      "h": 4
+    },
+    "7": {
+      "x": 0,
+      "y": 26,
+      "w": 6,
+      "h": 4
+    },
+    "8": {
+      "x": 6,
+      "y": 26,
+      "w": 6,
+      "h": 4
+    },
+    "9": {
+      "x": 12,
+      "y": 26,
+      "w": 6,
+      "h": 4
+    },
+    "10": {
+      "x": 18,
+      "y": 26,
+      "w": 6,
+      "h": 4
+    },
+    "13": {
+      "x": 0,
+      "y": 22,
+      "w": 6,
+      "h": 4
+    },
+    "14": {
+      "x": 0,
+      "y": 17,
+      "w": 24,
+      "h": 1
+    },
+    "15": {
+      "x": 0,
+      "y": 6,
+      "w": 24,
+      "h": 5
+    },
+    "16": {
+      "x": 0,
+      "y": 5,
+      "w": 24,
+      "h": 1
+    },
+    "19": {
+      "x": 0,
+      "y": 30,
+      "w": 6,
+      "h": 4
+    },
+    "20": {
+      "x": 6,
+      "y": 30,
+      "w": 6,
+      "h": 4
+    },
+    "21": {
+      "x": 0,
+      "y": 0,
+      "w": 9,
+      "h": 5
+    },
+    "22": {
+      "x": 9,
+      "y": 0,
+      "w": 15,
+      "h": 5
+    },
+    "23": {
+      "x": 0,
+      "y": 11,
+      "w": 24,
+      "h": 1
+    },
+    "24": {
+      "x": 0,
+      "y": 12,
+      "w": 24,
+      "h": 5
+    }
+  },
+  "importedWithCode": false,
+  "settings": {
+    "gridLayout": {
+      "mode": "responsive"
+    }
+  },
+  "annotations": []
+}

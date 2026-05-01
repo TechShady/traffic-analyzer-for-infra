@@ -1,0 +1,188 @@
+﻿Total tiles: 16
+
+Variables: []
+
+
+================================================================================
+TILE 91: (no title)
+Type: data | Viz: singleValue
+data record: true | data json: false | has $var: false
+--------------------------------------------------------------------------------
+data record(a="Core Web Vitals KPIs" )
+
+================================================================================
+TILE 93: (no title)
+Type: data | Viz: singleValue
+data record: true | data json: false | has $var: false
+--------------------------------------------------------------------------------
+data record(a=" Core Web Vitals Breakdown" )
+
+================================================================================
+TILE 94: (no title)
+Type: data | Viz: singleValue
+data record: true | data json: false | has $var: false
+--------------------------------------------------------------------------------
+data record(a="Trends" )
+
+================================================================================
+TILE 103: (no title)
+Type: data | Viz: singleValue
+data record: true | data json: false | has $var: false
+--------------------------------------------------------------------------------
+data record(a="." )
+
+================================================================================
+TILE 109: CLS
+Type: data | Viz: singleValue
+data record: false | data json: false | has $var: false
+--------------------------------------------------------------------------------
+fetch user.events
+| filter characteristics.has_page_summary
+| makeTimeseries  
+  p75CLS_scalar = percentile(web_vitals.cumulative_layout_shift, 75, scalar: true)
+
+================================================================================
+TILE 110: INP
+Type: data | Viz: singleValue
+data record: false | data json: false | has $var: false
+--------------------------------------------------------------------------------
+fetch user.events
+| filter characteristics.has_page_summary
+| makeTimeseries  
+  p75INP_scalar = percentile(web_vitals.interaction_to_next_paint, 75, scalar:true)
+
+================================================================================
+TILE 111: LCP
+Type: data | Viz: singleValue
+data record: false | data json: false | has $var: false
+--------------------------------------------------------------------------------
+fetch user.events
+| filter characteristics.has_page_summary
+| makeTimeseries  
+  p75LCP_scalar = percentile(web_vitals.largest_contentful_paint, 75, scalar:true)
+
+================================================================================
+TILE 112: Error Count
+Type: data | Viz: singleValue
+data record: false | data json: false | has $var: false
+--------------------------------------------------------------------------------
+fetch user.events
+| filter characteristics.has_error
+| makeTimeseries count = count()
+| fieldsAdd errors = arraySum(count)
+
+================================================================================
+TILE 113: Page Load Time
+Type: data | Viz: singleValue
+data record: false | data json: false | has $var: false
+--------------------------------------------------------------------------------
+fetch user.events
+| filter characteristics.has_navigation
+| makeTimeseries  
+  medianPageLoad = percentile(performance.load_event_end, 50),
+  medianPageLoad_scalar = percentile(performance.load_event_end, 50, scalar:true)
+
+================================================================================
+TILE 114: Navigations
+Type: data | Viz: singleValue
+data record: false | data json: false | has $var: false
+--------------------------------------------------------------------------------
+fetch user.events
+| filter characteristics.has_navigation 
+| makeTimeseries Count = count()
+| fieldsAdd navigations = arraySum(Count)
+
+================================================================================
+TILE 117: User Actions
+Type: data | Viz: table
+data record: false | data json: false | has $var: false
+--------------------------------------------------------------------------------
+fetch user.events
+| filter characteristics.has_page_summary or characteristics.has_w3c_navigation_timings
+| filter isNotNull(page.name)
+| summarize {
+    wlcp = if(isNull(percentile(web_vitals.largest_contentful_paint, 75)), 0, else:percentile(web_vitals.largest_contentful_paint, 75)), 
+    wcls = if(isNull(percentile(web_vitals.cumulative_layout_shift, 75)), 0, else:percentile(web_vitals.cumulative_layout_shift, 75)), 
+    winp = if(isNull(percentile(web_vitals.interaction_to_next_paint, 75)), 0, else:percentile(web_vitals.interaction_to_next_paint, 75)), 
+    Count = countIf(characteristics.has_w3c_navigation_timings)
+  }, by: { page.name, dt.rum.application.entity }
+| fieldsAdd dt.entity.application = dt.rum.application.entity
+| fieldsAdd Application = entityName(dt.entity.application)
+| fieldsRemove dt.entity.application
+| fields App=Application, Page = page.name, `Count` = Count, CWVScore = if(((wcls >= .1) or (toDouble(wlcp) >= 2500000000) or (toDouble(winp) >= 200000000)), "╬ô┬Ñ├«Fail", else: "╬ô┬ú├áPass"), `LCP` = wlcp, `INP` = winp, `CLS` = round(wcls,decimals:4)
+| sort Count desc
+//| limit 100
+
+================================================================================
+TILE 118: CWV Health
+Type: data | Viz: honeycomb
+data record: false | data json: false | has $var: false
+--------------------------------------------------------------------------------
+fetch user.events
+| filter characteristics.has_page_summary or characteristics.has_w3c_navigation_timings
+| filter isNotNull(page.name)
+| summarize {
+    wlcp = if(isNull(percentile(web_vitals.largest_contentful_paint, 75)), 0, else:percentile(web_vitals.largest_contentful_paint, 75)), 
+    wcls = if(isNull(percentile(web_vitals.cumulative_layout_shift, 75)), 0, else:percentile(web_vitals.cumulative_layout_shift, 75)), 
+    winp = if(isNull(percentile(web_vitals.interaction_to_next_paint, 75)), 0, else:percentile(web_vitals.interaction_to_next_paint, 75)), 
+    Count = countIf(characteristics.has_w3c_navigation_timings)
+  }, by: { page.name, dt.rum.application.entity }
+| fieldsAdd dt.entity.application = dt.rum.application.entity
+| fieldsAdd Application = entityName(dt.entity.application)
+| fieldsRemove dt.entity.application
+| fields App=Application, Page = page.name, CWVScore = if(((wcls >= .1) or (toDouble(wlcp) >= 2500000000) or (toDouble(winp) >= 200000000)), 0, else: 1)
+| sort CWVScore asc
+
+
+================================================================================
+TILE 121: Applications
+Type: data | Viz: table
+data record: false | data json: false | has $var: false
+--------------------------------------------------------------------------------
+fetch user.events
+| filter characteristics.has_page_summary or characteristics.has_w3c_navigation_timings
+| filter isNotNull(page.name)
+| summarize {
+    wlcp = if(isNull(percentile(web_vitals.largest_contentful_paint, 75)), 0, else:percentile(web_vitals.largest_contentful_paint, 75)), 
+    wcls = if(isNull(percentile(web_vitals.cumulative_layout_shift, 75)), 0, else:percentile(web_vitals.cumulative_layout_shift, 75)), 
+    winp = if(isNull(percentile(web_vitals.interaction_to_next_paint, 75)), 0, else:percentile(web_vitals.interaction_to_next_paint, 75)), 
+    Count = countIf(characteristics.has_w3c_navigation_timings)
+  }, by: { dt.rum.application.entity }
+| fieldsAdd dt.entity.application = dt.rum.application.entity
+| fieldsAdd Application = entityName(dt.entity.application)
+| fieldsRemove dt.entity.application
+| fields App=Application, `Count` = Count, CWVScore = if(((wcls >= .1) or (toDouble(wlcp) >= 2500000000) or (toDouble(winp) >= 200000000)), "╬ô┬Ñ├«Fail", else: "╬ô┬ú├áPass"), `LCP` = wlcp, `INP` = winp, `CLS` = round(wcls,decimals:4)
+| sort Count desc
+| limit 25
+
+================================================================================
+TILE 122: LCP
+Type: data | Viz: lineChart
+data record: false | data json: false | has $var: false
+--------------------------------------------------------------------------------
+fetch user.events
+| filter characteristics.has_page_summary
+| makeTimeseries  
+  p75LCP = percentile(web_vitals.largest_contentful_paint, 75)
+
+
+================================================================================
+TILE 123: INP
+Type: data | Viz: lineChart
+data record: false | data json: false | has $var: false
+--------------------------------------------------------------------------------
+fetch user.events
+| filter characteristics.has_page_summary
+| makeTimeseries  
+  p75INP = percentile(web_vitals.interaction_to_next_paint , 75) 
+
+================================================================================
+TILE 124: CLS
+Type: data | Viz: lineChart
+data record: false | data json: false | has $var: false
+--------------------------------------------------------------------------------
+fetch user.events
+| filter characteristics.has_page_summary
+| makeTimeseries  
+  p75CLS = percentile(web_vitals.cumulative_layout_shift, 75)
+

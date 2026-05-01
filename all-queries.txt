@@ -1,0 +1,566 @@
+﻿
+================================================================================
+TILE 0: Service - Requests Total
+Type: data | Visualization: lineChart
+================================================================================
+timeseries requests = sum(dt.service.request.count),
+           by:{dt.entity.service},
+           filter: in(dt.entity.service, array($ServiceID))
+| fieldsAdd service.name  = entityName(dt.entity.service)
+| fields timeframe,
+         interval,
+         service.name,
+         dt.entity.service,
+         requests
+| sort arraySum(requests) desc
+| limit 100
+
+================================================================================
+TILE 1: Service - Latency_p50
+Type: data | Visualization: lineChart
+================================================================================
+timeseries latency_p50 = percentile(dt.service.request.response_time, 50),
+           by:{dt.entity.service},
+           filter: in(dt.entity.service, array($ServiceID))
+| fieldsAdd service.name  = entityName(dt.entity.service)
+| fields timeframe,
+         interval,
+         service.name,
+         dt.entity.service,
+         latency_p50
+| sort arrayAvg(latency_p50) desc
+| limit 100
+
+================================================================================
+TILE 2: Service - Latency_p90
+Type: data | Visualization: lineChart
+================================================================================
+timeseries latency_p90 = percentile(dt.service.request.response_time, 90),
+           by:{dt.entity.service},
+           filter: in(dt.entity.service, array($ServiceID))
+| fieldsAdd service.name  = entityName(dt.entity.service)
+| fields timeframe,
+         interval,
+         service.name,
+         dt.entity.service,
+         latency_p90
+| sort arrayAvg(latency_p90) desc
+| limit 100
+
+
+================================================================================
+TILE 3: Service - Failed Requests
+Type: data | Visualization: lineChart
+================================================================================
+timeseries errors = sum(dt.service.request.failure_count,default:0),
+           nonempty: true,
+           by:{dt.entity.service},
+           filter: in(dt.entity.service, array($ServiceID))
+| fieldsAdd service.name  = entityName(dt.entity.service)
+| fields timeframe,
+         interval,
+         service.name,
+         dt.entity.service,
+         errors
+| sort arraySum(errors) desc
+| limit 100
+
+================================================================================
+TILE 4: Service - Failed Rate %
+Type: data | Visualization: lineChart
+================================================================================
+timeseries total = sum(dt.service.request.count,default:0),
+           nonempty: true,
+           by: {dt.entity.service},
+           filter: in(dt.entity.service, array($ServiceID))
+| lookup 
+[ 
+timeseries errors = sum(dt.service.request.failure_count,default:0),
+           nonempty: true,
+           by:{dt.entity.service},
+           filter: in(dt.entity.service, array($ServiceID))
+],
+sourceField:dt.entity.service, lookupField:dt.entity.service, prefix: "request."
+| fieldsAdd failureRate = request.errors[] / total[] * 100
+| fieldsAdd service.name  = entityName(dt.entity.service)
+| fields  timeframe, 
+          interval,
+          service.name,
+          dt.entity.service,
+          failureRate
+| sort arrayAvg(failureRate) desc          
+| limit 100
+
+================================================================================
+TILE 5: Service - 5xx Errors
+Type: data | Visualization: lineChart
+================================================================================
+timeseries errors = sum(dt.service.request.count,default:0),
+           nonempty: true,
+           by:{dt.entity.service},
+           filter:
+           http.response.status_code >= 500 and http.response.status_code <= 599 and
+           in(dt.entity.service, array($ServiceID))
+| fieldsAdd service.name  = entityName(dt.entity.service)
+| fields timeframe,
+         interval,
+         service.name,
+         dt.entity.service,
+         errors
+| sort arraySum(errors) desc
+| limit 100
+
+================================================================================
+TILE 6: Service - 4xx Errors
+Type: data | Visualization: lineChart
+================================================================================
+timeseries errors = sum(dt.service.request.count,default:0),
+           nonempty: true,
+           by:{dt.entity.service},
+           filter:
+           http.response.status_code >= 400 and http.response.status_code <= 499 and
+           in(dt.entity.service, array($ServiceID))
+| fieldsAdd service.name  = entityName(dt.entity.service)
+| fields timeframe,
+         interval,
+         service.name,
+         dt.entity.service,
+         errors
+| sort arraySum(errors) desc
+| limit 100
+
+================================================================================
+TILE 7: Process - CPU Usage %
+Type: data | Visualization: lineChart
+================================================================================
+timeseries cpu = avg(dt.process.cpu.usage),
+           by: {dt.entity.process_group_instance,
+                dt.entity.host}, 
+           filter: 
+           in(dt.entity.process_group_instance, array($PGI))
+| fieldsAdd pgi = entityName(dt.entity.process_group_instance)
+| fieldsAdd host.name = entityName(dt.entity.host)
+| fields timeframe,
+         interval,
+         pgi,
+         dt.entity.process_group_instance,
+         host.name,
+         cpu
+| sort arrayAvg(cpu) desc
+| limit 100
+
+
+================================================================================
+TILE 8: Process - Memory Usage %
+Type: data | Visualization: lineChart
+================================================================================
+timeseries memory=avg(dt.process.memory.usage),
+           by: {dt.entity.process_group_instance, 
+                dt.entity.host}, 
+           filter: 
+           in(dt.entity.process_group_instance, array($PGI))
+| fieldsAdd pgi = entityName(dt.entity.process_group_instance)
+| fieldsAdd host.name = entityName(dt.entity.host)
+| fields timeframe,
+         interval,
+         pgi,
+         dt.entity.process_group_instance,
+         host.name,
+         memory
+| sort arrayAvg(memory) desc
+| limit 100
+
+================================================================================
+TILE 9: Process - Memory Used
+Type: data | Visualization: lineChart
+================================================================================
+timeseries memory = avg(dt.process.memory.working_set_size),
+           by: {dt.entity.process_group_instance, 
+                dt.entity.host}, 
+           filter: 
+           in(dt.entity.process_group_instance, array($PGI))
+| fieldsAdd pgi = entityName(dt.entity.process_group_instance)
+| fieldsAdd host.name = entityName(dt.entity.host)
+| fields timeframe,
+         interval,
+         pgi,
+         dt.entity.process_group_instance,
+         host.name,
+         memory
+| sort arrayAvg(memory) desc
+| limit 100
+| limit 100
+
+================================================================================
+TILE 10: Process  - Garbage Collection Time %
+Type: data | Visualization: lineChart
+================================================================================
+timeseries gc_time = avg(dt.runtime.jvm.gc.suspension_time),
+           by:{dt.entity.process_group_instance,dt.entity.host},
+           filter: 
+           in(dt.entity.process_group_instance, array($PGI))
+| append [timeseries gc_time = avg(dt.runtime.clr.gc.suspension_time),
+           by:{dt.entity.process_group_instance,dt.entity.host},
+           filter: 
+           in(dt.entity.process_group_instance, array($PGI))           ]
+| append [timeseries gc_time = avg(dt.runtime.go.gc.suspension_time),
+           by:{dt.entity.process_group_instance,dt.entity.host},
+           filter: 
+           in(dt.entity.process_group_instance, array($PGI))
+         ]
+| append [timeseries gc_time = avg(dt.runtime.nodejs.gc.suspension_time),
+           by:{dt.entity.process_group_instance,dt.entity.host},
+           filter: 
+           in(dt.entity.process_group_instance, array($PGI))
+          ]
+| fieldsAdd pgi = entityName(dt.entity.process_group_instance)
+| fieldsAdd host.name = entityName(dt.entity.host)
+| fields  timeframe, 
+          interval, 
+          pgi,
+          dt.entity.process_group_instance,
+          host.name,
+          gc_time
+| sort arrayAvg(gc_time) desc
+| limit 100
+
+
+
+
+================================================================================
+TILE 13: Service - Requests by Status Code
+Type: data | Visualization: barChart
+================================================================================
+timeseries requests = sum(dt.service.request.count),
+           by:{http.response.status_code},
+           filter: in(dt.entity.service, array($ServiceID))
+| fields timeframe,
+         interval,
+         http.response.status_code,
+         requests
+| sort http.response.status_code asc
+| limit 100
+
+================================================================================
+TILE 14: (no title)
+Type: data | Visualization: singleValue
+================================================================================
+data record(a="METRICS" )
+
+================================================================================
+TILE 15: (no title)
+Type: data | Visualization: table
+================================================================================
+timeseries {latency_p50 = median(dt.service.request.response_time),
+           latency_p90 = percentile(dt.service.request.response_time, 90),
+           latency_p99 = percentile(dt.service.request.response_time, 99),
+           requests = sum(dt.service.request.count), 
+           errors = sum(dt.service.request.failure_count)},
+           by:{dt.entity.service},
+           filter: in(dt.entity.service, array($ServiceID))
+
+| lookup [ timeseries latency_avg = avg(dt.service.request.response_time),
+           by:{dt.entity.service},
+           filter:in(dt.entity.service, array($ServiceID))],
+            sourceField:dt.entity.service, lookupField:dt.entity.service,
+            prefix: "latencyAvg."
+
+
+
+| lookup [ timeseries http_5xx = sum(dt.service.request.count,default: 0.0),
+           by:{dt.entity.service},
+           filter: (http.response.status_code >= 500 and http.response.status_code <= 599) and
+                   in(dt.entity.service, array($ServiceID))],
+            sourceField:dt.entity.service, lookupField:dt.entity.service,
+            prefix: "http5xx."
+
+| lookup [ timeseries http_4xx = sum(dt.service.request.count,default: 0.0),
+           by:{dt.entity.service},
+           filter: (http.response.status_code >= 400 and http.response.status_code <= 499) and
+                   in(dt.entity.service, array($ServiceID))],
+            sourceField:dt.entity.service, lookupField:dt.entity.service,
+            prefix: "http4xx."
+
+| lookup [fetch dt.davis.problems, from:now()-7h, to:now()
+         | filter event.status=="ACTIVE" and dt.davis.is_duplicate==false// and matchesPhrase(affected_entity_ids, "SERVICE-")
+         | expand affected_entity_ids
+         | summarize {Problems = countDistinct(display_id),
+               event.id = takeFirst(event.id),
+               event.kind = takeFirst(event.kind)}, 
+               by:{affected_entity_ids}],
+  sourceField:dt.entity.service, lookupField:affected_entity_ids, 
+  fields:{Problems, affected_entity_ids,event.id,event.kind}    
+
+| fieldsAdd Latency_Avg = arrayAvg(latencyAvg.latency_avg),
+            Latency_p50 = arrayAvg(latency_p50),
+            Latency_p90 = arrayAvg(latency_p90),
+            Latency_p99 = arrayAvg(latency_p99),
+            Requests = arraySum(requests), 
+            Failures = arraySum(errors),
+           `5xx` = arraySum(http5xx.http_5xx),
+           `4xx` = arraySum(http4xx.http_4xx) 
+| fieldsAdd FailureRate = (Failures/Requests) *100
+| fieldsAdd Service = entityName(dt.entity.service)
+| fieldsAdd dt.entity.process_group = entityAttr(dt.entity.service, "runs_on")
+| fieldsAdd dt.entity.process_group = dt.entity.process_group[dt.entity.process_group]
+| fieldsAdd LogQueryPart2 = """\")""" 
+| fieldsAdd LogQueryPart2 = encodeUrl(LogQueryPart2)
+| fieldsAdd LogErrorsLink = concat("[Logs](",$LogsAppUrl,encodeurl(dt.entity.process_group),LogQueryPart2,$LogQueryTimeFrame,")")
+| fieldsAdd LogErrorsLink = replaceString(LogErrorsLink, "+", "%20")
+
+//| fieldsAdd PGI = $PGI
+| fields Status = if(Problems >= 0 , "PROBLEM",  else: "HEALTHY"),
+         Service = concat(Service,
+          "[](https://",$DynatraceTenant,".apps.dynatrace.com/ui/apps/dynatrace.distributedtracing/explorer?filter=dt.entity.service+%3D+",dt.entity.service,"&tf=",$dt_timeframe_from,";",$dt_timeframe_to,")"), 
+         dt.entity.service,
+         StatusSort = if(Problems > 0, 0, else: 1),
+         Requests,
+         Latency_Avg,
+         Latency_p50,
+         Latency_p90,
+         Latency_p99,
+         FailureRate,
+         Failures,
+        `5xx` = if(isNull(`5xx`), 0, else:`5xx`),
+        `4xx` = if(isNull(`4xx`), 0, else:`4xx`),
+         event.id,
+         event.kind,
+        `Analyze Errors` = concat(
+          "[Failures](https://",$DynatraceTenant,".apps.dynatrace.com/ui/apps/dynatrace.services/failure-analysis?filter=dt.entity.service+%3D+",dt.entity.service,"+AND+request.status_code+%3D+Failure+&tf=",$dt_timeframe_from,";",$dt_timeframe_to,")", " ",     
+          "[5xx](https://",$DynatraceTenant,".apps.dynatrace.com/ui/apps/dynatrace.distributedtracing/explorer?filter=dt.entity.service+%3D+",dt.entity.service,"+AND+http.response.status_code+>%3D+500+AND+http.response.status_code+<%3D+599&tf=",$dt_timeframe_from,";",$dt_timeframe_to,")", " ",
+          "[4xx](https://",$DynatraceTenant,".apps.dynatrace.com/ui/apps/dynatrace.distributedtracing/explorer?filter=dt.entity.service+%3D+",dt.entity.service,"+AND+http.response.status_code+>%3D+400+AND+http.response.status_code+<%3D+499&tf=",$dt_timeframe_from,";",$dt_timeframe_to,")", " ",
+          LogErrorsLink)
+
+         
+         
+         // `Analyze Errors` = concat(
+         //  "[Failure Analysis](https://",$DynatraceTenant,".apps.dynatrace.com/ui/apps/dynatrace.services/failure-analysis?filter=dt.entity.service+%3D+",dt.entity.service,"+&tf=",$dt_timeframe_from,";",$dt_timeframe_to,")", " ",     
+         //  "[Errors 5xx](https://",$DynatraceTenant,".apps.dynatrace.com/ui/apps/dynatrace.distributedtracing/explorer?filter=dt.entity.service+%3D+",dt.entity.service,"+AND+http.response.status_code+>%3D+500+AND+http.response.status_code+<%3D+599&tf=",$dt_timeframe_from,";",$dt_timeframe_to,")", " ",
+         //  "[Errors 4xx](https://",$DynatraceTenant,".apps.dynatrace.com/ui/apps/dynatrace.distributedtracing/explorer?filter=dt.entity.service+%3D+",dt.entity.service,"+AND+http.response.status_code+>%3D+400+AND+http.response.status_code+<%3D+499&tf=",$dt_timeframe_from,";",$dt_timeframe_to,")", " ",
+         //  "[Log Errors](https://",$DynatraceTenant,".apps.dynatrace.com/ui/apps/dynatrace.classic.logs.events/ui/logs-events?query=fetch%20logs%0A%7C%20filter%20matchesValue%28status%2C%20%22ERROR%22%29%20and%20matchesValue%28dt.entity.process_group%2C%20%22",dt.entity.process_group,"%22%29%0A%7C%20sort%20timestamp%20desc&gtf=c_",unixMillisFromTimestamp(toTimestamp($dt_timeframe_from)),"_",unixMillisFromTimestamp(toTimestamp($dt_timeframe_to)),"&advancedQueryMode=true",")"
+         //  )
+
+        // `Analyze Errors` = concat(
+        //   "[Errors 5xx](https://",$DynatraceTenant,".apps.dynatrace.com/ui/apps/dynatrace.distributedtracing/explorer?filter=dt.entity.service+%3D+",dt.entity.service,"+AND+http.response.status_code+>%3D+500+AND+http.response.status_code+<%3D+599&tf=",$dt_timeframe_from,";",$dt_timeframe_to,"&columns=start_time%2Cendpoint.name%2Cdt.entity.service.entity.name%2Cduration%2Crequest.status_code%2Chttp.response.status_code%2Cdt.entity.process_group.entity.name%2Cdt.entity.host.entity.name%2Cspan.events%5B%5D%5Bexception.type%5D&sidebar=u%2Cfalse",")", " ",
+        //   "[Errors 4xx](https://",$DynatraceTenant,".apps.dynatrace.com/ui/apps/dynatrace.distributedtracing/explorer?filter=dt.entity.service+%3D+",dt.entity.service,"+AND+http.response.status_code+>%3D+400+AND+http.response.status_code+<%3D+499&tf=",$dt_timeframe_from,";",$dt_timeframe_to,"&columns=start_time%2Cendpoint.name%2Cdt.entity.service.entity.name%2Cduration%2Crequest.status_code%2Chttp.response.status_code%2Cdt.entity.process_group.entity.name%2Cdt.entity.host.entity.name%2Cspan.events%5B%5D%5Bexception.type%5D&sidebar=u%2Cfalse",")")
+| sort StatusSort asc
+| fieldsRemove StatusSort
+| limit 1000
+
+================================================================================
+TILE 16: (no title)
+Type: data | Visualization: singleValue
+================================================================================
+data record(a="SERVICE SUMMARY")
+
+================================================================================
+TILE 19: K8s Workload - CPU Usage
+Type: data | Visualization: lineChart
+================================================================================
+timeseries cpu=avg(dt.kubernetes.container.cpu_usage),  
+           by: {k8s.namespace.name, 
+                dt.entity.kubernetes_cluster, 
+                dt.entity.cloud_application_namespace, 
+                dt.entity.cloud_application}, 
+filter: in(dt.entity.cloud_application, array($WorkloadID)) 
+| fieldsAdd workload = entityName(dt.entity.cloud_application)
+| fields timeframe,
+         interval,
+         workload,
+         cpu,
+         dt.entity.cloud_application,
+         k8s.namespace.name,
+         dt.entity.cloud_application_namespace,
+         dt.entity.kubernetes_cluster
+| sort arrayAvg(cpu) desc
+| limit 20
+
+================================================================================
+TILE 20: K8s Workload - Memory Usage
+Type: data | Visualization: lineChart
+================================================================================
+timeseries memory=avg(dt.kubernetes.container.memory_working_set),
+           limits=avg(dt.kubernetes.container.limits_memory),
+           by: {k8s.namespace.name, 
+                dt.entity.kubernetes_cluster, 
+                dt.entity.cloud_application_namespace, 
+                dt.entity.cloud_application }, 
+           filter: in(dt.entity.cloud_application, array($WorkloadID))
+| fieldsAdd workload = entityName(dt.entity.cloud_application)
+| fields timeframe,
+         interval,
+         workload,
+         memory,
+         limits,
+         dt.entity.cloud_application,
+         k8s.namespace.name,
+         dt.entity.cloud_application_namespace,
+         dt.entity.kubernetes_cluster
+| sort arrayAvg(memory) desc
+| limit 50
+
+================================================================================
+TILE 21: Services  (Current Status)
+Type: data | Visualization: honeycomb
+================================================================================
+fetch dt.entity.service
+| filter in(id, array($ServiceID))
+| filter serviceType != "DATABASE_SERVICE"
+| lookup [
+  fetch dt.davis.problems
+  | filter event.status == "ACTIVE"
+  | expand affected_entity_ids
+], sourceField:id, lookupField:affected_entity_ids
+| fieldsAdd affected = if(isNotNull(lookup.affected_entity_ids), "Problem", else: "Healthy")
+| fields affected, 
+         id, 
+         entity.name, 
+         event.id = lookup.event.id, 
+         event.kind = lookup.event.kind
+| sort affected desc
+
+
+================================================================================
+TILE 22: Problems List
+Type: data | Visualization: table
+================================================================================
+fetch dt.davis.problems
+| filter `dt.davis.is_duplicate` == false
+| sort timestamp desc
+| expand affected_entity_ids
+| filter in(affected_entity_ids, array($ServiceID)) or 
+         in(affected_entity_ids, array($WorkloadID)) 
+// Lookup for affected_entity_ids and root_cause_entity_id Start
+
+
+
+| lookup [fetch dt.entity.service], sourceField:affected_entity_ids, lookupField: id, prefix:"lookup.affected.entity.services"
+| lookup [fetch dt.entity.process_group_instance], sourceField:affected_entity_ids, lookupField: id, prefix:"lookup.affected.entity.pgi"
+| lookup [fetch dt.entity.application], sourceField:affected_entity_ids, lookupField: id, prefix:"lookup.affected.entity.applications"
+| lookup [fetch dt.entity.mobile_application], sourceField:affected_entity_ids, lookupField: id, prefix:"lookup.affected.entity.mobile"
+| lookup [fetch dt.entity.custom_application], sourceField:affected_entity_ids, lookupField: id, prefix:"lookup.affected.entity.customapplication"
+| lookup [fetch dt.entity.cloud_application], sourceField:affected_entity_ids, lookupField: id, prefix:"lookup.affected.entity.cloudapplication"
+| lookup [fetch dt.entity.synthetic_test], sourceField:affected_entity_ids, lookupField: id, prefix:"lookup.affected.entity.synthetictest"
+| lookup [fetch dt.entity.http_check], sourceField:affected_entity_ids, lookupField: id, prefix:"lookup.affected.entity.httpcheck"
+| lookup [fetch dt.entity.multiprotocol_monitor], sourceField:affected_entity_ids, lookupField: id, prefix:"lookup.affected.entity.multiprotocolmonitor"
+| lookup [fetch dt.entity.kubernetes_cluster], sourceField:affected_entity_ids, lookupField: id, prefix:"lookup.affected.entity.kubernetescluster"
+| lookup [fetch dt.entity.host], sourceField:affected_entity_ids, lookupField: id, prefix:"lookup.affected.entity.hosts"
+| lookup [fetch dt.entity.custom_device], sourceField:affected_entity_ids, lookupField: id, prefix:"lookup.affected.entity.customdevices"
+| lookup [fetch dt.entity.hypervisor], sourceField:affected_entity_ids, lookupField: id, prefix:"lookup.affected.entity.hypervisor"
+| lookup [fetch dt.entity.environment], sourceField:affected_entity_ids, lookupField: id, prefix:"lookup.affected.entity.environment"
+// Lookup for affected_entity_ids and root_cause_entity_id End
+
+// Summarzation Start - Group Probem Events by Problem ID
+| summarize {startTime = takeFirst(event.start),
+            endTime = takeFirst(event.end),
+            problemClosedDuration = takeFirst(resolved_problem_duration),
+            status = takeFirst(event.status),
+            event.name = takeFirst(event.name),
+            severityLevel = takeFirst(event.category),
+            affected = takeFirst(affected_entity_ids),
+            rootCause = takeFirst(root_cause_entity_name),
+            dt.davis.is_duplicate = takeFirst(dt.davis.is_duplicate),
+            affectedServices = collectDistinct(lookup.affected.entity.servicesentity.name),
+            affectedPGI = collectDistinct(lookup.affected.entity.pgientity.name),
+            affectedApplications = collectDistinct(lookup.affected.entity.applicationsentity.name),
+            affectedMobile = collectDistinct(lookup.affected.entity.mobileentity.name),
+            affectedCustomApplication = collectDistinct(lookup.affected.entity.customapplicationentity.name),
+            affectedCloudApplication = collectDistinct(lookup.affected.entity.cloudapplicationentity.name),
+            affectedSyntheticTest = collectDistinct(lookup.affected.entity.synthetictestentity.name),
+            affectedHttpCheck = collectDistinct(lookup.affected.entity.httpcheckentity.name),
+            affectedMultiprotocolMonitor = collectDistinct(lookup.affected.entity.multiprotocolmonitorentity.name),
+            affectedKubernetesCluster = collectDistinct(lookup.affected.entity.kubernetesclusterentity.name),
+            affectedHosts = collectDistinct(lookup.affected.entity.hostsentity.name),
+            affectedCustomDevices = collectDistinct(lookup.affected.entity.customdevicesentity.name),
+            affectedHypervisor = collectDistinct(lookup.affected.entity.hypervisorentity.name),
+            affectedEnvironment = collectDistinct(lookup.affected.entity.environmententity.name),
+            event.id = takeFirst(event.id)}, 
+            by:{display_id, event.kind}
+//| filter `dt.davis.is_duplicate` == false
+| fieldsAdd currentTime = toTimestamp(now())
+| fieldsAdd Description = concat(display_id," - ",event.name)
+// Summarzation End - Group Probem Events by Problem ID
+
+
+///https://guu84124.apps.dynatrace.com/ui/apps/dynatrace.classic.problems/#problems/problemdetails;gtf=-2h;gf=-4279023605659327282;pid=5910121192761273425_1744516020000V2
+// Final Result Start
+| fields Status = status,       
+         Description = concat("[",Description,"](https://",$DynatraceTenant,".apps.dynatrace.com/ui/apps/dynatrace.davis.problems/problem/",event.id,")"),    
+         Affected = arrayRemoveNulls(arrayConcat(affectedApplications,affectedMobile,affectedCustomApplication,affectedCloudApplication,affectedSyntheticTest,affectedHttpCheck,affectedServices,affectedPGI,affectedKubernetesCluster,affectedHosts,affectedHypervisor,affectedCustomDevices,affectedEnvironment,affectedMultiprotocolMonitor)),
+         RootCause = if(isNotNull(rootCause), rootCause, else:""),
+         StartTime = startTime,
+         EndTime =  if((status == "ACTIVE"),"In Progress", 
+                    else:if((status == "CLOSED"),endTime)),   
+         Duration = if((status == "CLOSED"),problemClosedDuration,
+                    else:if((status == "ACTIVE"), currentTime-startTime)),
+         event.id,
+         event.kind
+| sort StartTime, direction:"descending"
+| sort Status, direction:"ascending"
+// Final Result End
+
+
+
+
+================================================================================
+TILE 23: (no title)
+Type: data | Visualization: singleValue
+================================================================================
+data record(a="REQUESTS SUMMARY")
+
+================================================================================
+TILE 24: (no title)
+Type: data | Visualization: table
+================================================================================
+fetch spans, samplingRatio: 1, scanLimitGBytes: 50
+	
+// if in "requests" mode
+| filter request.is_root_span == true AND isNotNull(endpoint.name) 
+// based on the applied filters
+| filter matchesValue(`dt.entity.service`, $ServiceID)
+	
+	// calculate multiplicity based on sampling
+| fieldsAdd sampling.probability = (power(2, 56) - coalesce(sampling.threshold, 0)) * power(2, -56), 
+            sampling.multiplicity = 1/sampling.probability, 
+            multiplicity = coalesce(sampling.multiplicity, 1) * coalesce(aggregation.count, 1) * dt.system.sampling_ratio
+	
+	// construct fields
+| fieldsAdd request.status_code = if(request.is_failed, "Failure", else: "Success")
+	
+| fieldsAdd aggregation.duration_avg = coalesce(aggregation.duration_sum/aggregation.count, duration)
+	// add entity lookups
+| fieldsAdd dt.entity.service.entity.name = entityAttr(dt.entity.service, "entity.name")
+| summarize {
+	    dt.entity.service = takeFirst(dt.entity.service),
+	    Latency_Avg = sum(aggregation.duration_avg*multiplicity)/sum(multiplicity),
+	    Latency_p50 = percentile(duration, 50),
+	    Latency_p90 = percentile(duration, 90),
+	    Latency_p99 = percentile(duration, 99),
+	    Requests = sum(`multiplicity`),
+	    Failures = sum(if(request.status_code == "Failure", `multiplicity`, else: 0)),
+	    FailureRate = round(toDouble(sum(if(request.status_code == "Failure", `multiplicity`, else: 0)) / sum(`multiplicity`)), decimals: 3),
+        `5xx` = sum(if(http.response.status_code >= 500 and http.response.status_code <= 599, `multiplicity`, else: 0)),
+        `4xx` = sum(if(http.response.status_code >= 400 and http.response.status_code <= 499, `multiplicity`, else: 0))
+        }, by: {
+	    dt.entity.service.entity.name,
+	    endpoint.name,
+	    dt.system.sampling_ratio
+	  }
+| fieldsAdd Service = entityName(dt.entity.service)
+| filter isNotNull(endpoint.name)
+| fields Service,
+         Request = concat(endpoint.name,
+          "[](https://",$DynatraceTenant,".apps.dynatrace.com/ui/apps/dynatrace.distributedtracing/explorer?filter=dt.entity.service+%3D+",dt.entity.service,"+AND+endpoint.name+%3D+",endpoint.name,"&tf=",$dt_timeframe_from,";",$dt_timeframe_to,")"), 
+         Requests,         
+         Latency_Avg,
+         Latency_p50,
+         Latency_p90,
+         Latency_p99,
+         FailureRate = FailureRate * 100,
+         Failures,
+         `5xx`,
+         `4xx`,
+         `Analyze Errors` = concat(
+          "[5xx](https://",$DynatraceTenant,".apps.dynatrace.com/ui/apps/dynatrace.distributedtracing/explorer?filter=dt.entity.service+%3D+",dt.entity.service,"+AND+endpoint.name+%3D+",endpoint.name,"+AND+http.response.status_code+>%3D+500+AND+http.response.status_code+<%3D+599&tf=",$dt_timeframe_from,";",$dt_timeframe_to,"&columns=start_time%2Cendpoint.name%2Cdt.entity.service.entity.name%2Cduration%2Crequest.status_code%2Chttp.response.status_code%2Cdt.entity.process_group.entity.name%2Cdt.entity.host.entity.name%2Cspan.events%5B%5D%5Bexception.type%5D&sidebar=u%2Cfalse",")", " ",
+          "[4xx](https://",$DynatraceTenant,".apps.dynatrace.com/ui/apps/dynatrace.distributedtracing/explorer?filter=dt.entity.service+%3D+",dt.entity.service,"+AND+endpoint.name+%3D+",endpoint.name,"+AND+http.response.status_code+>%3D+400+AND+http.response.status_code+<%3D+499&tf=",$dt_timeframe_from,";",$dt_timeframe_to,"&columns=start_time%2Cendpoint.name%2Cdt.entity.service.entity.name%2Cduration%2Crequest.status_code%2Chttp.response.status_code%2Cdt.entity.process_group.entity.name%2Cdt.entity.host.entity.name%2Cspan.events%5B%5D%5Bexception.type%5D&sidebar=u%2Cfalse",")")
+| sort Requests desc  

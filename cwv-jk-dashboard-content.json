@@ -1,0 +1,1149 @@
+﻿{
+  "version": 21,
+  "variables": [],
+  "tiles": {
+    "91": {
+      "title": "",
+      "type": "data",
+      "query": "data record(a=\"Core Web Vitals KPIs\" )",
+      "visualization": "singleValue",
+      "visualizationSettings": {
+        "singleValue": {
+          "labelMode": "none",
+          "label": "a",
+          "recordField": "a",
+          "isIconVisible": true,
+          "prefixIcon": "ServiceLevelObjectivesIcon",
+          "colorThresholdTarget": "background",
+          "trend": {
+            "isVisible": true
+          }
+        },
+        "coloring": {
+          "colorRules": [
+            {
+              "value": "0",
+              "comparator": "!=",
+              "field": "a",
+              "colorMode": "custom-color",
+              "customColor": {
+                "Default": "var(--dt-colors-charts-categorical-color-01-default, #134fc9)"
+              }
+            }
+          ]
+        }
+      },
+      "querySettings": {
+        "maxResultRecords": 1000,
+        "defaultScanLimitGbytes": 500,
+        "maxResultMegaBytes": 100,
+        "defaultSamplingRatio": 10,
+        "enableSampling": false
+      },
+      "davis": {
+        "enabled": false,
+        "davisVisualization": {
+          "isAvailable": true
+        }
+      }
+    },
+    "93": {
+      "title": "",
+      "type": "data",
+      "query": "data record(a=\" Core Web Vitals Breakdown\" )",
+      "visualization": "singleValue",
+      "visualizationSettings": {
+        "singleValue": {
+          "labelMode": "none",
+          "label": "a",
+          "recordField": "a",
+          "isIconVisible": true,
+          "prefixIcon": "DataTableIcon",
+          "colorThresholdTarget": "background",
+          "trend": {
+            "isVisible": true
+          }
+        },
+        "coloring": {
+          "colorRules": [
+            {
+              "value": "0",
+              "comparator": "!=",
+              "field": "a",
+              "colorMode": "custom-color",
+              "customColor": {
+                "Default": "var(--dt-colors-charts-categorical-color-01-default, #134fc9)"
+              }
+            }
+          ]
+        }
+      },
+      "querySettings": {
+        "maxResultRecords": 1000,
+        "defaultScanLimitGbytes": 500,
+        "maxResultMegaBytes": 100,
+        "defaultSamplingRatio": 10,
+        "enableSampling": false
+      },
+      "davis": {
+        "enabled": false,
+        "davisVisualization": {
+          "isAvailable": true
+        }
+      }
+    },
+    "94": {
+      "title": "",
+      "type": "data",
+      "query": "data record(a=\"Trends\" )",
+      "visualization": "singleValue",
+      "visualizationSettings": {
+        "singleValue": {
+          "labelMode": "none",
+          "label": "a",
+          "recordField": "a",
+          "isIconVisible": true,
+          "prefixIcon": "StackedAreaChartIcon",
+          "colorThresholdTarget": "background",
+          "trend": {
+            "isVisible": true
+          }
+        },
+        "coloring": {
+          "colorRules": [
+            {
+              "value": "0",
+              "comparator": "!=",
+              "field": "a",
+              "colorMode": "custom-color",
+              "customColor": {
+                "Default": "var(--dt-colors-charts-categorical-color-01-default, #134fc9)"
+              }
+            }
+          ]
+        }
+      },
+      "querySettings": {
+        "maxResultRecords": 1000,
+        "defaultScanLimitGbytes": 500,
+        "maxResultMegaBytes": 100,
+        "defaultSamplingRatio": 10,
+        "enableSampling": false
+      },
+      "davis": {
+        "enabled": false,
+        "davisVisualization": {
+          "isAvailable": true
+        }
+      }
+    },
+    "103": {
+      "title": "",
+      "type": "data",
+      "query": "data record(a=\".\" )",
+      "visualization": "singleValue",
+      "visualizationSettings": {
+        "singleValue": {
+          "labelMode": "none",
+          "label": "a",
+          "recordField": "a",
+          "isIconVisible": true,
+          "prefixIcon": "",
+          "colorThresholdTarget": "background",
+          "trend": {
+            "isVisible": true
+          }
+        },
+        "coloring": {
+          "colorRules": [
+            {
+              "value": "0",
+              "comparator": "!=",
+              "field": "a",
+              "colorMode": "custom-color",
+              "customColor": {
+                "Default": "var(--dt-colors-charts-categorical-color-01-default, #134fc9)"
+              }
+            }
+          ]
+        }
+      },
+      "querySettings": {
+        "maxResultRecords": 1000,
+        "defaultScanLimitGbytes": 500,
+        "maxResultMegaBytes": 100,
+        "defaultSamplingRatio": 10,
+        "enableSampling": false
+      },
+      "davis": {
+        "enabled": false,
+        "davisVisualization": {
+          "isAvailable": true
+        }
+      }
+    },
+    "109": {
+      "title": "CLS",
+      "type": "data",
+      "query": "fetch user.events\n| filter characteristics.has_page_summary\n| makeTimeseries  \n  p75CLS_scalar = percentile(web_vitals.cumulative_layout_shift, 75, scalar: true)",
+      "visualization": "singleValue",
+      "visualizationSettings": {
+        "singleValue": {
+          "labelMode": "none",
+          "sparklineSettings": {
+            "isVisible": false
+          },
+          "trend": {
+            "upward": "#AE132D",
+            "downward": "#2A7453"
+          }
+        },
+        "coloring": {
+          "colorRules": [
+            {
+              "value": 0,
+              "comparator": "ΓëÑ",
+              "field": "p75CLS_scalar",
+              "colorMode": "custom-color",
+              "customColor": "#00D26A"
+            },
+            {
+              "value": 0.1,
+              "comparator": "ΓëÑ",
+              "field": "p75CLS_scalar",
+              "colorMode": "custom-color",
+              "customColor": "#FCD53F"
+            },
+            {
+              "value": 0.25,
+              "comparator": "ΓëÑ",
+              "field": "p75CLS_scalar",
+              "colorMode": "custom-color",
+              "customColor": "#F8312F"
+            }
+          ]
+        },
+        "autoSelectVisualization": false,
+        "unitsOverrides": []
+      },
+      "querySettings": {
+        "maxResultRecords": 1000,
+        "defaultScanLimitGbytes": 500,
+        "maxResultMegaBytes": 1,
+        "defaultSamplingRatio": 10,
+        "enableSampling": false
+      },
+      "davis": {
+        "enabled": false,
+        "davisVisualization": {
+          "isAvailable": true
+        }
+      }
+    },
+    "110": {
+      "title": "INP",
+      "type": "data",
+      "query": "fetch user.events\n| filter characteristics.has_page_summary\n| makeTimeseries  \n  p75INP_scalar = percentile(web_vitals.interaction_to_next_paint, 75, scalar:true)",
+      "visualization": "singleValue",
+      "visualizationSettings": {
+        "singleValue": {
+          "labelMode": "none",
+          "sparklineSettings": {
+            "isVisible": false
+          }
+        },
+        "coloring": {
+          "colorRules": [
+            {
+              "value": 0,
+              "comparator": "ΓëÑ",
+              "field": "p75INP_scalar",
+              "colorMode": "custom-color",
+              "customColor": "#00D26A"
+            },
+            {
+              "value": 200000000,
+              "comparator": "ΓëÑ",
+              "field": "p75INP_scalar",
+              "colorMode": "custom-color",
+              "customColor": "#FCD53F"
+            },
+            {
+              "value": 500000000,
+              "comparator": "ΓëÑ",
+              "field": "p75INP_scalar",
+              "colorMode": "custom-color",
+              "customColor": "#F8312F"
+            }
+          ]
+        },
+        "autoSelectVisualization": false,
+        "unitsOverrides": [
+          {
+            "identifier": "p75INP_scalar",
+            "unitCategory": "time",
+            "baseUnit": "nanosecond",
+            "displayUnit": null,
+            "decimals": 0,
+            "suffix": "",
+            "delimiter": false,
+            "added": 1765386563524
+          }
+        ]
+      },
+      "querySettings": {
+        "maxResultRecords": 1000,
+        "defaultScanLimitGbytes": 500,
+        "maxResultMegaBytes": 1,
+        "defaultSamplingRatio": 10,
+        "enableSampling": false
+      },
+      "davis": {
+        "enabled": false,
+        "davisVisualization": {
+          "isAvailable": true
+        }
+      }
+    },
+    "111": {
+      "title": "LCP",
+      "type": "data",
+      "query": "fetch user.events\n| filter characteristics.has_page_summary\n| makeTimeseries  \n  p75LCP_scalar = percentile(web_vitals.largest_contentful_paint, 75, scalar:true)",
+      "visualization": "singleValue",
+      "visualizationSettings": {
+        "singleValue": {
+          "labelMode": "none",
+          "sparklineSettings": {
+            "isVisible": false
+          },
+          "trend": {
+            "upward": "#AE132D",
+            "downward": "#2A7453"
+          }
+        },
+        "coloring": {
+          "colorRules": [
+            {
+              "value": 0,
+              "comparator": "ΓëÑ",
+              "field": "p75LCP_scalar",
+              "colorMode": "custom-color",
+              "customColor": "#00D26A"
+            },
+            {
+              "value": 2500000000,
+              "comparator": "ΓëÑ",
+              "field": "p75LCP_scalar",
+              "colorMode": "custom-color",
+              "customColor": "#FCD53F"
+            },
+            {
+              "value": 4000000000,
+              "comparator": "ΓëÑ",
+              "field": "p75LCP_scalar",
+              "colorMode": "custom-color",
+              "customColor": "#F8312F"
+            }
+          ]
+        },
+        "autoSelectVisualization": false,
+        "unitsOverrides": [
+          {
+            "identifier": "p75LCP_scalar",
+            "unitCategory": "time",
+            "baseUnit": "nanosecond",
+            "displayUnit": null,
+            "decimals": null,
+            "suffix": "",
+            "delimiter": false,
+            "added": 1766416487954
+          }
+        ]
+      },
+      "querySettings": {
+        "maxResultRecords": 1000,
+        "defaultScanLimitGbytes": 500,
+        "maxResultMegaBytes": 1,
+        "defaultSamplingRatio": 10,
+        "enableSampling": false
+      },
+      "davis": {
+        "enabled": false,
+        "davisVisualization": {
+          "isAvailable": true
+        }
+      }
+    },
+    "112": {
+      "title": "Error Count",
+      "type": "data",
+      "query": "fetch user.events\n| filter characteristics.has_error\n| makeTimeseries count = count()\n| fieldsAdd errors = arraySum(count)",
+      "visualization": "singleValue",
+      "visualizationSettings": {
+        "singleValue": {
+          "labelMode": "none",
+          "sparklineSettings": {
+            "isVisible": false
+          },
+          "trend": {
+            "isVisible": false,
+            "upward": "#AE132D",
+            "downward": "#2A7453"
+          }
+        },
+        "autoSelectVisualization": false,
+        "unitsOverrides": []
+      },
+      "querySettings": {
+        "maxResultRecords": 1000,
+        "defaultScanLimitGbytes": 500,
+        "maxResultMegaBytes": 1,
+        "defaultSamplingRatio": 10,
+        "enableSampling": false
+      },
+      "davis": {
+        "enabled": false,
+        "davisVisualization": {
+          "isAvailable": true
+        }
+      }
+    },
+    "113": {
+      "title": "Page Load Time",
+      "type": "data",
+      "query": "fetch user.events\n| filter characteristics.has_navigation\n| makeTimeseries  \n  medianPageLoad = percentile(performance.load_event_end, 50),\n  medianPageLoad_scalar = percentile(performance.load_event_end, 50, scalar:true)",
+      "visualization": "singleValue",
+      "visualizationSettings": {
+        "singleValue": {
+          "labelMode": "none",
+          "sparklineSettings": {
+            "isVisible": false
+          },
+          "trend": {
+            "isVisible": false,
+            "upward": "#AE132D",
+            "downward": "#2A7453"
+          }
+        },
+        "autoSelectVisualization": false,
+        "unitsOverrides": [
+          {
+            "identifier": "medianPageLoad_scalar",
+            "unitCategory": "time",
+            "baseUnit": "nanosecond",
+            "displayUnit": null,
+            "decimals": 0,
+            "suffix": "",
+            "delimiter": false,
+            "added": 1765386563524
+          }
+        ]
+      },
+      "querySettings": {
+        "maxResultRecords": 1000,
+        "defaultScanLimitGbytes": 500,
+        "maxResultMegaBytes": 1,
+        "defaultSamplingRatio": 10,
+        "enableSampling": false
+      },
+      "davis": {
+        "enabled": false,
+        "davisVisualization": {
+          "isAvailable": true
+        }
+      }
+    },
+    "114": {
+      "title": "Navigations",
+      "type": "data",
+      "query": "fetch user.events\n| filter characteristics.has_navigation \n| makeTimeseries Count = count()\n| fieldsAdd navigations = arraySum(Count)",
+      "visualization": "singleValue",
+      "visualizationSettings": {
+        "singleValue": {
+          "labelMode": "none",
+          "colorThresholdTarget": "background",
+          "sparklineSettings": {
+            "isVisible": false
+          },
+          "trend": {
+            "isVisible": false
+          }
+        },
+        "autoSelectVisualization": false,
+        "unitsOverrides": []
+      },
+      "querySettings": {
+        "maxResultRecords": 1000,
+        "defaultScanLimitGbytes": 500,
+        "maxResultMegaBytes": 1,
+        "defaultSamplingRatio": 10,
+        "enableSampling": false
+      },
+      "davis": {
+        "enabled": false,
+        "davisVisualization": {
+          "isAvailable": true
+        }
+      }
+    },
+    "117": {
+      "title": "User Actions",
+      "type": "data",
+      "query": "fetch user.events\n| filter characteristics.has_page_summary or characteristics.has_w3c_navigation_timings\n| filter isNotNull(page.name)\n| summarize {\n    wlcp = if(isNull(percentile(web_vitals.largest_contentful_paint, 75)), 0, else:percentile(web_vitals.largest_contentful_paint, 75)), \n    wcls = if(isNull(percentile(web_vitals.cumulative_layout_shift, 75)), 0, else:percentile(web_vitals.cumulative_layout_shift, 75)), \n    winp = if(isNull(percentile(web_vitals.interaction_to_next_paint, 75)), 0, else:percentile(web_vitals.interaction_to_next_paint, 75)), \n    Count = countIf(characteristics.has_w3c_navigation_timings)\n  }, by: { page.name, dt.rum.application.entity }\n| fieldsAdd dt.entity.application = dt.rum.application.entity\n| fieldsAdd Application = entityName(dt.entity.application)\n| fieldsRemove dt.entity.application\n| fields App=Application, Page = page.name, `Count` = Count, CWVScore = if(((wcls >= .1) or (toDouble(wlcp) >= 2500000000) or (toDouble(winp) >= 200000000)), \"Γ¥îFail\", else: \"Γ£àPass\"), `LCP` = wlcp, `INP` = winp, `CLS` = round(wcls,decimals:4)\n| sort Count desc\n//| limit 100",
+      "visualization": "table",
+      "visualizationSettings": {
+        "table": {
+          "hideColumnsForLargeResults": true,
+          "sortBy": [
+            {
+              "columnId": "[\"Page\"]",
+              "direction": "ascending"
+            }
+          ],
+          "columnWidths": {
+            "[\"Page\"]": 260
+          }
+        },
+        "coloring": {
+          "colorRules": [
+            {
+              "value": 0,
+              "comparator": "ΓëÑ",
+              "field": "LCP",
+              "colorMode": "custom-color",
+              "customColor": "#00D26A",
+              "metadata": {
+                "applyTo": "cell",
+                "fields": [
+                  "LCP"
+                ]
+              }
+            },
+            {
+              "value": 2500000000,
+              "comparator": "ΓëÑ",
+              "field": "LCP",
+              "colorMode": "custom-color",
+              "customColor": {
+                "Default": "var(--dt-colors-charts-status-warning-default, #eea53c)"
+              },
+              "metadata": {
+                "applyTo": "cell",
+                "fields": [
+                  "LCP"
+                ]
+              }
+            },
+            {
+              "value": 4000000000,
+              "comparator": "ΓëÑ",
+              "field": "LCP",
+              "colorMode": "custom-color",
+              "customColor": "#F8312F",
+              "metadata": {
+                "applyTo": "cell",
+                "fields": [
+                  "LCP"
+                ]
+              }
+            },
+            {
+              "value": 0,
+              "comparator": "ΓëÑ",
+              "field": "INP",
+              "colorMode": "custom-color",
+              "customColor": "#00D26A",
+              "metadata": {
+                "applyTo": "cell",
+                "fields": [
+                  "INP"
+                ]
+              }
+            },
+            {
+              "value": 200000000,
+              "comparator": "ΓëÑ",
+              "field": "INP",
+              "colorMode": "custom-color",
+              "customColor": "#FCD53F",
+              "metadata": {
+                "applyTo": "cell",
+                "fields": [
+                  "INP"
+                ]
+              }
+            },
+            {
+              "value": 500000000,
+              "comparator": "ΓëÑ",
+              "field": "INP",
+              "colorMode": "custom-color",
+              "customColor": "#F8312F",
+              "metadata": {
+                "applyTo": "cell",
+                "fields": [
+                  "INP"
+                ]
+              }
+            },
+            {
+              "value": 0,
+              "comparator": "ΓëÑ",
+              "field": "CLS",
+              "colorMode": "custom-color",
+              "customColor": "#00D26A",
+              "metadata": {
+                "applyTo": "cell",
+                "fields": [
+                  "CLS"
+                ]
+              }
+            },
+            {
+              "value": 0.1,
+              "comparator": "ΓëÑ",
+              "field": "CLS",
+              "colorMode": "custom-color",
+              "customColor": "#FCD53F",
+              "metadata": {
+                "applyTo": "cell",
+                "fields": [
+                  "CLS"
+                ]
+              }
+            },
+            {
+              "value": 0.25,
+              "comparator": "ΓëÑ",
+              "field": "CLS",
+              "colorMode": "custom-color",
+              "customColor": "#F8312F",
+              "metadata": {
+                "applyTo": "cell",
+                "fields": [
+                  "CLS"
+                ]
+              }
+            }
+          ]
+        },
+        "autoSelectVisualization": true,
+        "unitsOverrides": []
+      },
+      "querySettings": {
+        "maxResultRecords": 1000,
+        "defaultScanLimitGbytes": 500,
+        "maxResultMegaBytes": 1,
+        "defaultSamplingRatio": 10,
+        "enableSampling": false
+      },
+      "davis": {
+        "enabled": false,
+        "davisVisualization": {
+          "isAvailable": true
+        }
+      }
+    },
+    "118": {
+      "title": "CWV Health",
+      "type": "data",
+      "query": "fetch user.events\n| filter characteristics.has_page_summary or characteristics.has_w3c_navigation_timings\n| filter isNotNull(page.name)\n| summarize {\n    wlcp = if(isNull(percentile(web_vitals.largest_contentful_paint, 75)), 0, else:percentile(web_vitals.largest_contentful_paint, 75)), \n    wcls = if(isNull(percentile(web_vitals.cumulative_layout_shift, 75)), 0, else:percentile(web_vitals.cumulative_layout_shift, 75)), \n    winp = if(isNull(percentile(web_vitals.interaction_to_next_paint, 75)), 0, else:percentile(web_vitals.interaction_to_next_paint, 75)), \n    Count = countIf(characteristics.has_w3c_navigation_timings)\n  }, by: { page.name, dt.rum.application.entity }\n| fieldsAdd dt.entity.application = dt.rum.application.entity\n| fieldsAdd Application = entityName(dt.entity.application)\n| fieldsRemove dt.entity.application\n| fields App=Application, Page = page.name, CWVScore = if(((wcls >= .1) or (toDouble(wlcp) >= 2500000000) or (toDouble(winp) >= 200000000)), 0, else: 1)\n| sort CWVScore asc\n",
+      "visualization": "honeycomb",
+      "visualizationSettings": {
+        "honeycomb": {
+          "legend": {
+            "position": "bottom"
+          }
+        },
+        "coloring": {
+          "colorRules": [
+            {
+              "colorMode": "custom-color",
+              "customColor": "#F8312F",
+              "field": "",
+              "value": 0,
+              "comparator": "ΓëÑ"
+            },
+            {
+              "colorMode": "custom-color",
+              "customColor": "#00D26A",
+              "field": "",
+              "value": 1,
+              "comparator": "ΓëÑ"
+            }
+          ]
+        },
+        "autoSelectVisualization": false
+      },
+      "querySettings": {
+        "maxResultRecords": 1000,
+        "defaultScanLimitGbytes": 500,
+        "maxResultMegaBytes": 1,
+        "defaultSamplingRatio": 10,
+        "enableSampling": false
+      },
+      "davis": {
+        "enabled": false,
+        "davisVisualization": {
+          "isAvailable": true
+        }
+      }
+    },
+    "121": {
+      "title": "Applications",
+      "type": "data",
+      "query": "fetch user.events\n| filter characteristics.has_page_summary or characteristics.has_w3c_navigation_timings\n| filter isNotNull(page.name)\n| summarize {\n    wlcp = if(isNull(percentile(web_vitals.largest_contentful_paint, 75)), 0, else:percentile(web_vitals.largest_contentful_paint, 75)), \n    wcls = if(isNull(percentile(web_vitals.cumulative_layout_shift, 75)), 0, else:percentile(web_vitals.cumulative_layout_shift, 75)), \n    winp = if(isNull(percentile(web_vitals.interaction_to_next_paint, 75)), 0, else:percentile(web_vitals.interaction_to_next_paint, 75)), \n    Count = countIf(characteristics.has_w3c_navigation_timings)\n  }, by: { dt.rum.application.entity }\n| fieldsAdd dt.entity.application = dt.rum.application.entity\n| fieldsAdd Application = entityName(dt.entity.application)\n| fieldsRemove dt.entity.application\n| fields App=Application, `Count` = Count, CWVScore = if(((wcls >= .1) or (toDouble(wlcp) >= 2500000000) or (toDouble(winp) >= 200000000)), \"Γ¥îFail\", else: \"Γ£àPass\"), `LCP` = wlcp, `INP` = winp, `CLS` = round(wcls,decimals:4)\n| sort Count desc\n| limit 25",
+      "visualization": "table",
+      "visualizationSettings": {
+        "table": {
+          "hideColumnsForLargeResults": true,
+          "sortBy": [
+            {
+              "columnId": "[\"Page\"]",
+              "direction": "ascending"
+            }
+          ]
+        },
+        "coloring": {
+          "colorRules": [
+            {
+              "value": 0,
+              "comparator": "ΓëÑ",
+              "field": "LCP",
+              "colorMode": "custom-color",
+              "customColor": "#00D26A",
+              "metadata": {
+                "applyTo": "cell",
+                "fields": [
+                  "LCP"
+                ]
+              }
+            },
+            {
+              "value": 2500000000,
+              "comparator": "ΓëÑ",
+              "field": "LCP",
+              "colorMode": "custom-color",
+              "customColor": {
+                "Default": "var(--dt-colors-charts-status-warning-default, #eea53c)"
+              },
+              "metadata": {
+                "applyTo": "cell",
+                "fields": [
+                  "LCP"
+                ]
+              }
+            },
+            {
+              "value": 4000000000,
+              "comparator": "ΓëÑ",
+              "field": "LCP",
+              "colorMode": "custom-color",
+              "customColor": "#F8312F",
+              "metadata": {
+                "applyTo": "cell",
+                "fields": [
+                  "LCP"
+                ]
+              }
+            },
+            {
+              "value": 0,
+              "comparator": "ΓëÑ",
+              "field": "INP",
+              "colorMode": "custom-color",
+              "customColor": "#00D26A",
+              "metadata": {
+                "applyTo": "cell",
+                "fields": [
+                  "INP"
+                ]
+              }
+            },
+            {
+              "value": 200000000,
+              "comparator": "ΓëÑ",
+              "field": "INP",
+              "colorMode": "custom-color",
+              "customColor": "#FCD53F",
+              "metadata": {
+                "applyTo": "cell",
+                "fields": [
+                  "INP"
+                ]
+              }
+            },
+            {
+              "value": 500000000,
+              "comparator": "ΓëÑ",
+              "field": "INP",
+              "colorMode": "custom-color",
+              "customColor": "#F8312F",
+              "metadata": {
+                "applyTo": "cell",
+                "fields": [
+                  "INP"
+                ]
+              }
+            },
+            {
+              "value": 0,
+              "comparator": "ΓëÑ",
+              "field": "CLS",
+              "colorMode": "custom-color",
+              "customColor": "#00D26A",
+              "metadata": {
+                "applyTo": "cell",
+                "fields": [
+                  "CLS"
+                ]
+              }
+            },
+            {
+              "value": 0.1,
+              "comparator": "ΓëÑ",
+              "field": "CLS",
+              "colorMode": "custom-color",
+              "customColor": "#FCD53F",
+              "metadata": {
+                "applyTo": "cell",
+                "fields": [
+                  "CLS"
+                ]
+              }
+            },
+            {
+              "value": 0.25,
+              "comparator": "ΓëÑ",
+              "field": "CLS",
+              "colorMode": "custom-color",
+              "customColor": "#F8312F",
+              "metadata": {
+                "applyTo": "cell",
+                "fields": [
+                  "CLS"
+                ]
+              }
+            }
+          ]
+        },
+        "autoSelectVisualization": true,
+        "unitsOverrides": []
+      },
+      "querySettings": {
+        "maxResultRecords": 1000,
+        "defaultScanLimitGbytes": 500,
+        "maxResultMegaBytes": 1,
+        "defaultSamplingRatio": 10,
+        "enableSampling": false
+      },
+      "davis": {
+        "enabled": false,
+        "davisVisualization": {
+          "isAvailable": true
+        }
+      }
+    },
+    "122": {
+      "title": "LCP",
+      "type": "data",
+      "query": "fetch user.events\n| filter characteristics.has_page_summary\n| makeTimeseries  \n  p75LCP = percentile(web_vitals.largest_contentful_paint, 75)\n",
+      "visualization": "lineChart",
+      "visualizationSettings": {
+        "chartSettings": {
+          "legend": {
+            "hidden": true
+          }
+        },
+        "coloring": {
+          "thresholdRules": [
+            {
+              "color": "#00D26A",
+              "min": 0,
+              "max": 2500000000,
+              "colorMode": "single-color",
+              "mode": "range",
+              "position": "left",
+              "strokeOnly": false
+            },
+            {
+              "color": "#FCD53F",
+              "min": 2500000000,
+              "max": 4000000000,
+              "colorMode": "single-color",
+              "mode": "range",
+              "position": "left",
+              "strokeOnly": false
+            },
+            {
+              "color": "#F8312F",
+              "min": 4000000000,
+              "max": null,
+              "colorMode": "single-color",
+              "mode": "range",
+              "position": "left",
+              "strokeOnly": false
+            }
+          ]
+        },
+        "autoSelectVisualization": false,
+        "unitsOverrides": [
+          {
+            "identifier": "p75LCP_scalar",
+            "unitCategory": "time",
+            "baseUnit": "nanosecond",
+            "displayUnit": null,
+            "decimals": null,
+            "suffix": "",
+            "delimiter": false,
+            "added": 1766416487954
+          }
+        ]
+      },
+      "querySettings": {
+        "maxResultRecords": 1000,
+        "defaultScanLimitGbytes": 500,
+        "maxResultMegaBytes": 1,
+        "defaultSamplingRatio": 10,
+        "enableSampling": false
+      },
+      "davis": {
+        "enabled": false,
+        "davisVisualization": {
+          "isAvailable": true
+        }
+      }
+    },
+    "123": {
+      "title": "INP",
+      "type": "data",
+      "query": "fetch user.events\n| filter characteristics.has_page_summary\n| makeTimeseries  \n  p75INP = percentile(web_vitals.interaction_to_next_paint , 75) ",
+      "visualization": "lineChart",
+      "visualizationSettings": {
+        "chartSettings": {
+          "legend": {
+            "hidden": true
+          }
+        },
+        "coloring": {
+          "thresholdRules": [
+            {
+              "color": "#00D26A",
+              "min": 0,
+              "max": 200000000,
+              "colorMode": "single-color",
+              "mode": "range",
+              "position": "left",
+              "strokeOnly": false
+            },
+            {
+              "color": "#FCD53F",
+              "min": 200000000,
+              "max": 500000000,
+              "colorMode": "single-color",
+              "mode": "range",
+              "position": "left",
+              "strokeOnly": false
+            },
+            {
+              "color": "#F8312F",
+              "min": 500000000,
+              "max": null,
+              "colorMode": "single-color",
+              "mode": "range",
+              "position": "left",
+              "strokeOnly": false
+            }
+          ]
+        },
+        "autoSelectVisualization": false,
+        "unitsOverrides": [
+          {
+            "identifier": "p75INP_scalar",
+            "unitCategory": "time",
+            "baseUnit": "nanosecond",
+            "displayUnit": null,
+            "decimals": 0,
+            "suffix": "",
+            "delimiter": false,
+            "added": 1765386563524
+          }
+        ]
+      },
+      "querySettings": {
+        "maxResultRecords": 1000,
+        "defaultScanLimitGbytes": 500,
+        "maxResultMegaBytes": 1,
+        "defaultSamplingRatio": 10,
+        "enableSampling": false
+      },
+      "davis": {
+        "enabled": false,
+        "davisVisualization": {
+          "isAvailable": true
+        }
+      }
+    },
+    "124": {
+      "title": "CLS",
+      "type": "data",
+      "query": "fetch user.events\n| filter characteristics.has_page_summary\n| makeTimeseries  \n  p75CLS = percentile(web_vitals.cumulative_layout_shift, 75)",
+      "visualization": "lineChart",
+      "visualizationSettings": {
+        "chartSettings": {
+          "legend": {
+            "hidden": true
+          }
+        },
+        "coloring": {
+          "thresholdRules": [
+            {
+              "color": "#00D26A",
+              "min": 0,
+              "max": 0.1,
+              "colorMode": "single-color",
+              "mode": "range",
+              "position": "left",
+              "strokeOnly": false
+            },
+            {
+              "color": "#FCD53F",
+              "min": 0.1,
+              "max": 0.25,
+              "colorMode": "single-color",
+              "mode": "range",
+              "position": "left",
+              "strokeOnly": false
+            },
+            {
+              "color": "#F8312F",
+              "min": 0.25,
+              "max": null,
+              "colorMode": "single-color",
+              "mode": "range",
+              "position": "left",
+              "strokeOnly": false
+            }
+          ]
+        },
+        "autoSelectVisualization": false,
+        "unitsOverrides": []
+      },
+      "querySettings": {
+        "maxResultRecords": 1000,
+        "defaultScanLimitGbytes": 500,
+        "maxResultMegaBytes": 1,
+        "defaultSamplingRatio": 10,
+        "enableSampling": false
+      },
+      "davis": {
+        "enabled": false,
+        "davisVisualization": {
+          "isAvailable": true
+        }
+      }
+    }
+  },
+  "layouts": {
+    "91": {
+      "x": 0,
+      "y": 0,
+      "w": 24,
+      "h": 1
+    },
+    "93": {
+      "x": 0,
+      "y": 7,
+      "w": 24,
+      "h": 1
+    },
+    "94": {
+      "x": 0,
+      "y": 14,
+      "w": 24,
+      "h": 1
+    },
+    "103": {
+      "x": 0,
+      "y": 30,
+      "w": 24,
+      "h": 1
+    },
+    "109": {
+      "x": 20,
+      "y": 1,
+      "w": 4,
+      "h": 2
+    },
+    "110": {
+      "x": 16,
+      "y": 1,
+      "w": 4,
+      "h": 2
+    },
+    "111": {
+      "x": 12,
+      "y": 1,
+      "w": 4,
+      "h": 2
+    },
+    "112": {
+      "x": 8,
+      "y": 1,
+      "w": 4,
+      "h": 2
+    },
+    "113": {
+      "x": 4,
+      "y": 1,
+      "w": 4,
+      "h": 2
+    },
+    "114": {
+      "x": 0,
+      "y": 1,
+      "w": 4,
+      "h": 2
+    },
+    "117": {
+      "x": 0,
+      "y": 8,
+      "w": 14,
+      "h": 6
+    },
+    "118": {
+      "x": 0,
+      "y": 3,
+      "w": 24,
+      "h": 4
+    },
+    "121": {
+      "x": 14,
+      "y": 8,
+      "w": 10,
+      "h": 6
+    },
+    "122": {
+      "x": 0,
+      "y": 15,
+      "w": 24,
+      "h": 5
+    },
+    "123": {
+      "x": 0,
+      "y": 20,
+      "w": 24,
+      "h": 5
+    },
+    "124": {
+      "x": 0,
+      "y": 25,
+      "w": 24,
+      "h": 5
+    }
+  },
+  "importedWithCode": false,
+  "settings": {},
+  "annotations": []
+}
+Edit cancelled, no changes made.
