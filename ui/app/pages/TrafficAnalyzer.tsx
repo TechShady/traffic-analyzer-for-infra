@@ -1510,6 +1510,10 @@ export const TrafficAnalyzer = () => {
                     <div style={{ fontSize: 12, color: "#8899bb" }}>Optimal</div>
                     <div style={{ fontSize: 32, fontWeight: 700, color: GREEN }}>{rightSizingData.filter((r) => r.Status === "Optimal").length}</div>
                   </div>
+                  <div style={{ flex: "1 1 200px", border: TILE_BORDER, borderRadius: 10, padding: 16, background: TILE_BG, boxShadow: TILE_SHADOW, textAlign: "center" }}>
+                    <div style={{ fontSize: 12, color: "#8899bb" }}>Low Correlation</div>
+                    <div style={{ fontSize: 32, fontWeight: 700, color: "#8899bb" }}>{activeHosts.length - rightSizingData.length}</div>
+                  </div>
                 </Flex>
                 <DataTable
                   data={rightSizingData.map(({ _statusColor, ...rest }) => rest)}
@@ -1680,7 +1684,7 @@ export const TrafficAnalyzer = () => {
                   <div>Memory: Observed High=<span style={{ color: getResourceColor(memory.high) }}>{round(memory.high)}%</span>  →  Forecast High=<span style={{ color: getResourceColor(memForecast.high) }}>{round(memForecast.high)}%</span>  |  Headroom=<span style={{ color: getProvisioningColor(memProvisioning) }}>{round(memProvisioning)}%</span></div>
                   <div>Disk:   Observed High=<span style={{ color: getResourceColor(disk.high) }}>{round(disk.high)}%</span>  →  Forecast High=<span style={{ color: getResourceColor(diskForecast.high) }}>{round(diskForecast.high)}%</span>  |  Headroom=<span style={{ color: getProvisioningColor(diskProvisioning) }}>{round(diskProvisioning)}%</span></div>
                   <div style={{ marginTop: 16, fontWeight: 700, color: "#4589FF" }}>RIGHT-SIZING SUMMARY</div>
-                  <div><span style={{ color: RED }}>Under-Provisioned: {rightSizingData.filter((r) => r.Status === "Under-Provisioned").length}</span> | <span style={{ color: YELLOW }}>Over-Provisioned: {rightSizingData.filter((r) => r.Status === "Over-Provisioned").length}</span> | <span style={{ color: GREEN }}>Optimal: {rightSizingData.filter((r) => r.Status === "Optimal").length}</span></div>
+                  <div><span style={{ color: RED }}>Under-Provisioned: {rightSizingData.filter((r) => r.Status === "Under-Provisioned").length}</span> | <span style={{ color: YELLOW }}>Over-Provisioned: {rightSizingData.filter((r) => r.Status === "Over-Provisioned").length}</span> | <span style={{ color: GREEN }}>Optimal: {rightSizingData.filter((r) => r.Status === "Optimal").length}</span> | <span style={{ color: "#8899bb" }}>Low Correlation: {activeHosts.length - rightSizingData.length}</span></div>
                   <div style={{ marginTop: 16, fontWeight: 700, color: "#4589FF" }}>SATURATION RISK</div>
                   <div><span style={{ color: RED }}>At Risk (≤30d): {saturationData.filter((r) => typeof r._minDays === "number" && r._minDays <= 30).length}</span> | <span style={{ color: YELLOW }}>Warning (31–90d): {saturationData.filter((r) => typeof r._minDays === "number" && r._minDays > 30 && r._minDays <= 90).length}</span></div>
                   {alertViolations.length > 0 && (
