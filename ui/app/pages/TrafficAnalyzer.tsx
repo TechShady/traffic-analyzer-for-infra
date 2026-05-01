@@ -43,6 +43,33 @@ const DEFAULT_PROVISION_GOAL = 80;
 const DEFAULT_TOP_N = 100;
 const DEFAULT_TRAFFIC_METRIC = "dt.host.cpu.system";
 
+const TAB_DEFINITIONS = [
+  { id: "overview", title: "Overview" },
+  { id: "forecast-breakdown", title: "Forecast Breakdown" },
+  { id: "metrics-observed", title: "Metrics - Observed" },
+  { id: "metrics-forecast", title: "Metrics - Forecast" },
+  { id: "top-cpu", title: "Top Impacted Entities - CPU" },
+  { id: "top-memory", title: "Top Impacted Entities - Memory" },
+  { id: "top-disk", title: "Top Impacted Entities - Disk" },
+  { id: "analytics", title: "Analytics" },
+  { id: "saturation", title: "Saturation Countdown" },
+  { id: "what-if", title: "What-If Scenarios" },
+  { id: "right-sizing", title: "Right-Sizing" },
+  { id: "host-heatmap", title: "Host Heatmap" },
+  { id: "correlation-matrix", title: "Correlation Matrix" },
+  { id: "trend-analysis", title: "Trend Analysis" },
+  { id: "capacity-report", title: "Capacity Report" },
+  { id: "baselines", title: "Baselines" },
+  { id: "alert-rules", title: "Alert Rules" },
+];
+
+interface TabConfig {
+  id: string;
+  visible: boolean;
+}
+
+const DEFAULT_TAB_CONFIG: TabConfig[] = TAB_DEFINITIONS.map((t) => ({ id: t.id, visible: true }));
+
 const TIMEFRAME_OPTIONS = [
   { label: "1 day", value: 1 },
   { label: "2 days", value: 2 },
@@ -214,6 +241,8 @@ export const TrafficAnalyzer = () => {
   const [tempTopN, setTempTopN] = useState<number>(DEFAULT_TOP_N);
   const [tempProvisionGoal, setTempProvisionGoal] = useState<number>(DEFAULT_PROVISION_GOAL);
   const [tempTrafficMetric, setTempTrafficMetric] = useState<string>(DEFAULT_TRAFFIC_METRIC);
+  const [tabConfig, setTabConfig] = useState<TabConfig[]>(DEFAULT_TAB_CONFIG);
+  const [tempTabConfig, setTempTabConfig] = useState<TabConfig[]>(DEFAULT_TAB_CONFIG);
   const [cpuColSizing, setCpuColSizing] = useState<Record<string, number>>({});
   const [memColSizing, setMemColSizing] = useState<Record<string, number>>({});
   const [diskColSizing, setDiskColSizing] = useState<Record<string, number>>({});
@@ -395,6 +424,7 @@ export const TrafficAnalyzer = () => {
     setTopN(tempTopN);
     setProvisionGoal(tempProvisionGoal);
     setTrafficMetric(tempTrafficMetric.trim() || DEFAULT_TRAFFIC_METRIC);
+    setTabConfig(tempTabConfig);
     setSettingsOpen(false);
   };
 
@@ -770,7 +800,7 @@ export const TrafficAnalyzer = () => {
           <Button variant="default" onClick={() => setHelpOpen(true)}>
             <Button.Prefix><HelpIcon /></Button.Prefix>
           </Button>
-          <Button variant="default" onClick={() => { setTempTopN(topN); setTempProvisionGoal(provisionGoal); setTempTrafficMetric(trafficMetric); setSettingsOpen(true); }}>
+          <Button variant="default" onClick={() => { setTempTopN(topN); setTempProvisionGoal(provisionGoal); setTempTrafficMetric(trafficMetric); setTempTabConfig([...tabConfig]); setSettingsOpen(true); }}>
             <Button.Prefix><SettingIcon /></Button.Prefix>
           </Button>
         </div>
@@ -954,7 +984,7 @@ export const TrafficAnalyzer = () => {
       </Modal>
 
       {/* Settings Modal */}
-      <Modal title="Settings" show={settingsOpen} onDismiss={() => setSettingsOpen(false)} size="small"
+      <Modal title="Settings" show={settingsOpen} onDismiss={() => setSettingsOpen(false)} size="large"
         footer={
           <Flex justifyContent="flex-end" gap={8}>
             <Button variant="emphasized" onClick={handleSaveSettings}>Save</Button>
@@ -974,14 +1004,33 @@ export const TrafficAnalyzer = () => {
             <Strong>Traffic Metric</Strong>
             <input value={tempTrafficMetric} onChange={(e) => setTempTrafficMetric(e.target.value)} placeholder={DEFAULT_TRAFFIC_METRIC} style={{ padding: "6px 12px", borderRadius: 6, border: "1px solid rgba(99,130,191,0.3)", background: "rgba(30,35,55,0.7)", color: "#d0d4e0", fontSize: 13 }} />
           </Flex>
+          <Flex flexDirection="column" gap={8}>
+            <Strong>Tab Order & Visibility</Strong>
+            <div style={{ fontSize: 12, color: "#aaa" }}>Use arrows to reorder. Toggle visibility with the checkbox.</div>
+            <div style={{ border: "1px solid rgba(99,130,191,0.25)", borderRadius: 8, overflow: "hidden" }}>
+              {tempTabConfig.map((tc, idx) => {
+                const def = TAB_DEFINITIONS.find((t) => t.id === tc.id);
+                return (
+                  <div key={tc.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 12px", borderBottom: idx < tempTabConfig.length - 1 ? "1px solid rgba(99,130,191,0.15)" : "none", background: tc.visible ? "transparent" : "rgba(50,50,70,0.4)" }}>
+                    <input type="checkbox" checked={tc.visible} onChange={() => setTempTabConfig((prev) => prev.map((t) => t.id === tc.id ? { ...t, visible: !t.visible } : t))} />
+                    <span style={{ flex: 1, fontSize: 13, color: tc.visible ? "#d0d4e0" : "#666" }}>{def?.title ?? tc.id}</span>
+                    <button disabled={idx === 0} onClick={() => setTempTabConfig((prev) => { const arr = [...prev]; [arr[idx - 1], arr[idx]] = [arr[idx], arr[idx - 1]]; return arr; })} style={{ background: "none", border: "none", color: idx === 0 ? "#444" : "#4589ff", cursor: idx === 0 ? "default" : "pointer", fontSize: 16 }}>▲</button>
+                    <button disabled={idx === tempTabConfig.length - 1} onClick={() => setTempTabConfig((prev) => { const arr = [...prev]; [arr[idx], arr[idx + 1]] = [arr[idx + 1], arr[idx]]; return arr; })} style={{ background: "none", border: "none", color: idx === tempTabConfig.length - 1 ? "#444" : "#4589ff", cursor: idx === tempTabConfig.length - 1 ? "default" : "pointer", fontSize: 16 }}>▼</button>
+                  </div>
+                );
+              })}
+            </div>
+          </Flex>
         </Flex>
       </Modal>
 
       {isLoading && <LoadingState />}
 
       <Tabs>
-        {/* Tab 1: Overview */}
-        <Tab title="Overview">
+        {tabConfig.filter((tc) => tc.visible).map((tc) => {
+          switch (tc.id) {
+            case "overview": return (
+        <Tab key={tc.id} title="Overview">
           <Flex flexDirection="column" gap={16} paddingTop={16}>
             <SectionHeader title="Forecast High" />
             <Flex gap={16} flexWrap="wrap">
@@ -1070,9 +1119,8 @@ export const TrafficAnalyzer = () => {
             <SectionHeader title={"\u00A0"} />
           </Flex>
         </Tab>
-
-        {/* Tab 2: Forecast Breakdown */}
-        <Tab title="Forecast Breakdown">
+            ); case "forecast-breakdown": return (
+        <Tab key={tc.id} title="Forecast Breakdown">
           <Flex flexDirection="column" gap={16} paddingTop={16}>
             <Heading level={6}>CPU Observed (Blue) vs Forecast (Green)</Heading>
             <CategoricalBarChart data={cpuBarData} height={250} layout="horizontal">
@@ -1102,9 +1150,8 @@ export const TrafficAnalyzer = () => {
             </CategoricalBarChart>
           </Flex>
         </Tab>
-
-        {/* Tab 3: Metrics - Observed */}
-        <Tab title="Metrics - Observed">
+            ); case "metrics-observed": return (
+        <Tab key={tc.id} title="Metrics - Observed">
           <Flex flexDirection="column" gap={16} paddingTop={16}>
             <Heading level={6}>Traffic</Heading>
             <Flex gap={8} flexWrap="wrap">
@@ -1136,9 +1183,8 @@ export const TrafficAnalyzer = () => {
             </Flex>
           </Flex>
         </Tab>
-
-        {/* Tab 4: Metrics - Forecast */}
-        <Tab title="Metrics - Forecast">
+            ); case "metrics-forecast": return (
+        <Tab key={tc.id} title="Metrics - Forecast">
           <Flex flexDirection="column" gap={16} paddingTop={16}>
             <Heading level={6}>Traffic</Heading>
             <Flex gap={8} flexWrap="wrap">
@@ -1169,9 +1215,8 @@ export const TrafficAnalyzer = () => {
             </Flex>
           </Flex>
         </Tab>
-
-        {/* Tab 4: Top Impacted Entities - CPU */}
-        <Tab title="Top Impacted Entities - CPU">
+            ); case "top-cpu": return (
+        <Tab key={tc.id} title="Top Impacted Entities - CPU">
           <Flex flexDirection="column" gap={16} paddingTop={16}>
             <Heading level={6}>CPU % by Host - Top {topN} (sorted by Pearson Correlation)</Heading>
             {cpuByHost.isLoading ? <LoadingState /> : (
@@ -1181,9 +1226,8 @@ export const TrafficAnalyzer = () => {
             )}
           </Flex>
         </Tab>
-
-        {/* Tab 5: Top Impacted Entities - Memory */}
-        <Tab title="Top Impacted Entities - Memory">
+            ); case "top-memory": return (
+        <Tab key={tc.id} title="Top Impacted Entities - Memory">
           <Flex flexDirection="column" gap={16} paddingTop={16}>
             <Heading level={6}>Memory % by Host - Top {topN} (sorted by Pearson Correlation)</Heading>
             {memByHost.isLoading ? <LoadingState /> : (
@@ -1193,9 +1237,8 @@ export const TrafficAnalyzer = () => {
             )}
           </Flex>
         </Tab>
-
-        {/* Tab 6: Top Impacted Entities - Disk */}
-        <Tab title="Top Impacted Entities - Disk">
+            ); case "top-disk": return (
+        <Tab key={tc.id} title="Top Impacted Entities - Disk">
           <Flex flexDirection="column" gap={16} paddingTop={16}>
             <Heading level={6}>Disk Free % by Host - Top {topN} (sorted by Pearson Correlation)</Heading>
             {diskByHost.isLoading ? <LoadingState /> : (
@@ -1205,9 +1248,8 @@ export const TrafficAnalyzer = () => {
             )}
           </Flex>
         </Tab>
-
-        {/* Tab 7: Analytics */}
-        <Tab title="Analytics">
+            ); case "analytics": return (
+        <Tab key={tc.id} title="Analytics">
           <Flex flexDirection="column" gap={16} paddingTop={16}>
             {analyticsResult.isLoading ? <LoadingState /> : !analytics || !analyticsExtras ? (
               <Flex justifyContent="center" padding={32}><Strong>No analytics data available</Strong></Flex>
@@ -1351,9 +1393,8 @@ export const TrafficAnalyzer = () => {
             )}
           </Flex>
         </Tab>
-
-        {/* ═══════════════════════ SATURATION COUNTDOWN ═══════════════════════ */}
-        <Tab title="Saturation Countdown">
+            ); case "saturation": return (
+        <Tab key={tc.id} title="Saturation Countdown">
           <Flex flexDirection="column" gap={16} paddingTop={16}>
             <SectionHeader title={`Days Until Resources Hit ${provisionGoal}% Capacity`} />
             <InsightBox>
@@ -1397,9 +1438,8 @@ export const TrafficAnalyzer = () => {
             )}
           </Flex>
         </Tab>
-
-        {/* ═══════════════════════ WHAT-IF SCENARIOS ═══════════════════════ */}
-        <Tab title="What-If Scenarios">
+            ); case "what-if": return (
+        <Tab key={tc.id} title="What-If Scenarios">
           <Flex flexDirection="column" gap={16} paddingTop={16}>
             <SectionHeader title="Compare Multiple Traffic Scenarios Side-by-Side" />
             <InsightBox>
@@ -1441,9 +1481,8 @@ export const TrafficAnalyzer = () => {
             </Flex>
           </Flex>
         </Tab>
-
-        {/* ═══════════════════════ RIGHT-SIZING ═══════════════════════ */}
-        <Tab title="Right-Sizing">
+            ); case "right-sizing": return (
+        <Tab key={tc.id} title="Right-Sizing">
           <Flex flexDirection="column" gap={16} paddingTop={16}>
             <SectionHeader title="Right-Sizing Recommendations" />
             <InsightBox>
@@ -1493,9 +1532,8 @@ export const TrafficAnalyzer = () => {
             )}
           </Flex>
         </Tab>
-
-        {/* ═══════════════════════ HOST GROUP HEATMAP ═══════════════════════ */}
-        <Tab title="Host Heatmap">
+            ); case "host-heatmap": return (
+        <Tab key={tc.id} title="Host Heatmap">
           <Flex flexDirection="column" gap={16} paddingTop={16}>
             <SectionHeader title="Host Capacity Heatmap — Forecasted CPU High" />
             <InsightBox>
@@ -1523,9 +1561,8 @@ export const TrafficAnalyzer = () => {
             )}
           </Flex>
         </Tab>
-
-        {/* ═══════════════════════ CORRELATION MATRIX ═══════════════════════ */}
-        <Tab title="Correlation Matrix">
+            ); case "correlation-matrix": return (
+        <Tab key={tc.id} title="Correlation Matrix">
           <Flex flexDirection="column" gap={16} paddingTop={16}>
             <SectionHeader title="Cross-Resource Correlation Matrix" />
             <InsightBox>
@@ -1567,9 +1604,8 @@ export const TrafficAnalyzer = () => {
             )}
           </Flex>
         </Tab>
-
-        {/* ═══════════════════════ TREND DECOMPOSITION ═══════════════════════ */}
-        <Tab title="Trend Analysis">
+            ); case "trend-analysis": return (
+        <Tab key={tc.id} title="Trend Analysis">
           <Flex flexDirection="column" gap={16} paddingTop={16}>
             <SectionHeader title="Trend Decomposition — Growth Direction & Volatility" />
             <InsightBox>
@@ -1615,9 +1651,8 @@ export const TrafficAnalyzer = () => {
             )}
           </Flex>
         </Tab>
-
-        {/* ═══════════════════════ CAPACITY REPORT ═══════════════════════ */}
-        <Tab title="Capacity Report">
+            ); case "capacity-report": return (
+        <Tab key={tc.id} title="Capacity Report">
           <Flex flexDirection="column" gap={16} paddingTop={16}>
             <SectionHeader title="Executive Capacity Summary" />
             <InsightBox>
@@ -1661,9 +1696,8 @@ export const TrafficAnalyzer = () => {
             )}
           </Flex>
         </Tab>
-
-        {/* ═══════════════════════ BASELINE SNAPSHOTS ═══════════════════════ */}
-        <Tab title="Baselines">
+            ); case "baselines": return (
+        <Tab key={tc.id} title="Baselines">
           <Flex flexDirection="column" gap={16} paddingTop={16}>
             <SectionHeader title="Baseline Snapshots — Track Capacity Over Time" />
             <InsightBox>
@@ -1719,9 +1753,8 @@ export const TrafficAnalyzer = () => {
             )}
           </Flex>
         </Tab>
-
-        {/* ═══════════════════════ ALERT THRESHOLDS ═══════════════════════ */}
-        <Tab title="Alert Rules">
+            ); case "alert-rules": return (
+        <Tab key={tc.id} title="Alert Rules">
           <Flex flexDirection="column" gap={16} paddingTop={16}>
             <SectionHeader title="Custom Capacity Alert Rules" />
             <InsightBox>
@@ -1790,6 +1823,9 @@ export const TrafficAnalyzer = () => {
             )}
           </Flex>
         </Tab>
+            ); default: return null;
+          }
+        })}
       </Tabs>
       </Flex>
     </Flex>
