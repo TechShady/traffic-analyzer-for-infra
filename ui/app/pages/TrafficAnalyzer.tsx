@@ -1615,11 +1615,17 @@ export const TrafficAnalyzer = () => {
             {metrics && (
               <>
                 <Button variant="emphasized" onClick={() => {
-                  window.print();
+                  const el = document.getElementById("capacity-report-content");
+                  if (!el) return;
+                  const w = window.open("", "_blank");
+                  if (!w) return;
+                  w.document.write(`<html><head><title>Capacity Report</title><style>body{font-family:monospace;font-size:13px;line-height:1.8;padding:24px;color:#1a1a2e;background:#fff;}strong{font-weight:700;}</style></head><body>${el.innerHTML}</body></html>`);
+                  w.document.close();
+                  w.print();
                 }}>
                   Print to PDF
                 </Button>
-                <div style={{ border: TILE_BORDER, borderRadius: 10, padding: 24, background: TILE_BG, boxShadow: TILE_SHADOW, fontFamily: "monospace", fontSize: 13, lineHeight: 1.8, whiteSpace: "pre-wrap", color: "#d0d4e0" }}>
+                <div id="capacity-report-content" style={{ border: TILE_BORDER, borderRadius: 10, padding: 24, background: TILE_BG, boxShadow: TILE_SHADOW, fontFamily: "monospace", fontSize: 13, lineHeight: 1.8, whiteSpace: "pre-wrap", color: "#d0d4e0" }}>
                   <div style={{ fontSize: 16, fontWeight: 700, color: "#4589FF", marginBottom: 12 }}>CAPACITY REPORT — {new Date().toLocaleDateString()}</div>
                   <div>Timeframe: <strong>{timeframeDays} days</strong> | Traffic Scenario: <strong>+{trafficChangePercent}%</strong> | Provision Goal: <strong>{provisionGoal}%</strong></div>
                   <div>Hosts Analyzed: <strong>{activeHosts.length}</strong></div>
