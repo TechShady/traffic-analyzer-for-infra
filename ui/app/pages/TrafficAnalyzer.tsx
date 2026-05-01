@@ -1610,35 +1610,14 @@ export const TrafficAnalyzer = () => {
           <Flex flexDirection="column" gap={16} paddingTop={16}>
             <SectionHeader title="Executive Capacity Summary" />
             <InsightBox>
-              <strong>How to use:</strong> This is a one-page summary of your infrastructure capacity posture. Use the "Copy to Clipboard" button to share with stakeholders.
+              <strong>How to use:</strong> This is a one-page summary of your infrastructure capacity posture. Use the "Print to PDF" button to save or share with stakeholders.
             </InsightBox>
             {metrics && (
               <>
                 <Button variant="emphasized" onClick={() => {
-                  const lines = [
-                    `CAPACITY REPORT — ${new Date().toLocaleDateString()}`,
-                    `Timeframe: ${timeframeDays} days | Traffic Scenario: +${trafficChangePercent}% | Provision Goal: ${provisionGoal}%`,
-                    `Hosts Analyzed: ${activeHosts.length}`,
-                    "",
-                    "RESOURCE SUMMARY",
-                    `  CPU:    Observed High=${round(cpu.high)}%  Forecast High=${round(cpuForecast.high)}%  PCC=${round(cpuPCC)}  Provisioning=${round(cpuProvisioning)}%`,
-                    `  Memory: Observed High=${round(memory.high)}%  Forecast High=${round(memForecast.high)}%  PCC=${round(memPCC)}  Provisioning=${round(memProvisioning)}%`,
-                    `  Disk:   Observed High=${round(disk.high)}%  Forecast High=${round(diskForecast.high)}%  PCC=${round(diskPCC)}  Provisioning=${round(diskProvisioning)}%`,
-                    "",
-                    "RIGHT-SIZING",
-                    `  Under-Provisioned: ${rightSizingData.filter((r) => r.Status === "Under-Provisioned").length}`,
-                    `  Over-Provisioned: ${rightSizingData.filter((r) => r.Status === "Over-Provisioned").length}`,
-                    `  Optimal: ${rightSizingData.filter((r) => r.Status === "Optimal").length}`,
-                    "",
-                    "SATURATION COUNTDOWN",
-                    `  At Risk (≤30 days): ${saturationData.filter((r) => typeof r._minDays === "number" && r._minDays <= 30).length}`,
-                    `  Warning (31–90 days): ${saturationData.filter((r) => typeof r._minDays === "number" && r._minDays > 30 && r._minDays <= 90).length}`,
-                    "",
-                    alertViolations.length > 0 ? `ALERT VIOLATIONS: ${alertViolations.length}` : "NO ALERT VIOLATIONS",
-                  ];
-                  navigator.clipboard.writeText(lines.join("\n"));
+                  window.print();
                 }}>
-                  Copy Report to Clipboard
+                  Print to PDF
                 </Button>
                 <div style={{ border: TILE_BORDER, borderRadius: 10, padding: 24, background: TILE_BG, boxShadow: TILE_SHADOW, fontFamily: "monospace", fontSize: 13, lineHeight: 1.8, whiteSpace: "pre-wrap", color: "#d0d4e0" }}>
                   <div style={{ fontSize: 16, fontWeight: 700, color: "#4589FF", marginBottom: 12 }}>CAPACITY REPORT — {new Date().toLocaleDateString()}</div>
