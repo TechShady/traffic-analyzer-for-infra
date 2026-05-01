@@ -41,6 +41,7 @@ const TRAFFIC_CHANGE_OPTIONS = [
 
 const DEFAULT_PROVISION_GOAL = 80;
 const DEFAULT_TOP_N = 100;
+const DEFAULT_TRAFFIC_METRIC = "dt.host.cpu.system";
 
 const TIMEFRAME_OPTIONS = [
   { label: "1 day", value: 1 },
@@ -207,10 +208,12 @@ export const TrafficAnalyzer = () => {
   const [topN, setTopN] = useState<number>(DEFAULT_TOP_N);
   const [timeframeDays, setTimeframeDays] = useState<number>(7);
   const [provisionGoal, setProvisionGoal] = useState<number>(DEFAULT_PROVISION_GOAL);
+  const [trafficMetric, setTrafficMetric] = useState<string>(DEFAULT_TRAFFIC_METRIC);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [tempTopN, setTempTopN] = useState<number>(DEFAULT_TOP_N);
   const [tempProvisionGoal, setTempProvisionGoal] = useState<number>(DEFAULT_PROVISION_GOAL);
+  const [tempTrafficMetric, setTempTrafficMetric] = useState<string>(DEFAULT_TRAFFIC_METRIC);
   const [cpuColSizing, setCpuColSizing] = useState<Record<string, number>>({});
   const [memColSizing, setMemColSizing] = useState<Record<string, number>>({});
   const [diskColSizing, setDiskColSizing] = useState<Record<string, number>>({});
@@ -263,15 +266,15 @@ export const TrafficAnalyzer = () => {
   const activeHosts = validSelectedHosts.length > 0 ? validSelectedHosts : hostOptions;
 
   // Single metrics query (replaces separate CPU/Memory/Disk queries)
-  const metricsResult = useDql({ query: metricsQuery(activeHosts, timeframeDays) });
+  const metricsResult = useDql({ query: metricsQuery(activeHosts, timeframeDays, trafficMetric) });
 
   // Table queries with per-host PCC
-  const cpuByHost = useDql({ query: cpuByHostQuery(activeHosts, topN, timeframeDays) });
-  const memByHost = useDql({ query: memoryByHostQuery(activeHosts, topN, timeframeDays) });
-  const diskByHost = useDql({ query: diskByHostQuery(activeHosts, topN, timeframeDays) });
+  const cpuByHost = useDql({ query: cpuByHostQuery(activeHosts, topN, timeframeDays, trafficMetric) });
+  const memByHost = useDql({ query: memoryByHostQuery(activeHosts, topN, timeframeDays, trafficMetric) });
+  const diskByHost = useDql({ query: diskByHostQuery(activeHosts, topN, timeframeDays, trafficMetric) });
 
   // Analytics query
-  const analyticsResult = useDql({ query: analyticsQuery(activeHosts, timeframeDays) });
+  const analyticsResult = useDql({ query: analyticsQuery(activeHosts, timeframeDays, trafficMetric) });
 
   const isLoading = metricsResult.isLoading;
 
@@ -391,6 +394,7 @@ export const TrafficAnalyzer = () => {
   const handleSaveSettings = () => {
     setTopN(tempTopN);
     setProvisionGoal(tempProvisionGoal);
+    setTrafficMetric(tempTrafficMetric.trim() || DEFAULT_TRAFFIC_METRIC);
     setSettingsOpen(false);
   };
 
@@ -766,7 +770,7 @@ export const TrafficAnalyzer = () => {
           <Button variant="default" onClick={() => setHelpOpen(true)}>
             <Button.Prefix><HelpIcon /></Button.Prefix>
           </Button>
-          <Button variant="default" onClick={() => { setTempTopN(topN); setTempProvisionGoal(provisionGoal); setSettingsOpen(true); }}>
+          <Button variant="default" onClick={() => { setTempTopN(topN); setTempProvisionGoal(provisionGoal); setTempTrafficMetric(trafficMetric); setSettingsOpen(true); }}>
             <Button.Prefix><SettingIcon /></Button.Prefix>
           </Button>
         </div>
@@ -780,7 +784,7 @@ export const TrafficAnalyzer = () => {
         <div style={{ padding: 16, maxHeight: "70vh", overflowY: "auto", fontSize: 13, lineHeight: 1.6 }}>
           <h3 style={{ marginTop: 0 }}>Overview</h3>
           <p>
-            The Traffic Analyzer for Infrastructure correlates <strong>network traffic</strong> (measured via <code>dt.host.cpu.system</code>) with <strong>CPU</strong>, <strong>Memory</strong>, and <strong>Disk</strong> resource usage to forecast how infrastructure will respond to future traffic changes. Use the <strong>Traffic Percentage slider</strong> to simulate a traffic increase (e.g., +50%) and see how each resource is projected to respond.
+            The Traffic Analyzer for Infrastructure correlates <strong>network traffic</strong> (measured via <code>{trafficMetric}</code>, configurable in Settings) with <strong>CPU</strong>, <strong>Memory</strong>, and <strong>Disk</strong> resource usage to forecast how infrastructure will respond to future traffic changes. Use the <strong>Traffic Percentage slider</strong> to simulate a traffic increase (e.g., +50%) and see how each resource is projected to respond.
           </p>
 
           <h3>Filters</h3>
@@ -789,7 +793,7 @@ export const TrafficAnalyzer = () => {
             <li><strong>Host Group</strong> — Filter hosts by host group. Selecting a group restricts the Host dropdown to hosts in that group.</li>
             <li><strong>Host</strong> — Select specific hosts to analyze. If none selected, all hosts (or hosts in the selected group) are included.</li>
             <li><strong>Timeframe</strong> — Analysis window (1–365 days). All metrics and tables use this time range.</li>
-            <li><strong>Settings (⚙)</strong> — Configure Provisioning Goal (default {DEFAULT_PROVISION_GOAL}%) and Top N (max entities per table).</li>
+            <li><strong>Settings (⚙)</strong> — Configure Provisioning Goal (default {DEFAULT_PROVISION_GOAL}%), Top N (max entities per table), and Traffic Metric (the Dynatrace metric used as the traffic proxy, default <code>{DEFAULT_TRAFFIC_METRIC}</code>).</li>
           </ul>
 
           <h3>Key Concepts</h3>
@@ -852,6 +856,9 @@ export const TrafficAnalyzer = () => {
 
           <h4>Top Impacted Entities (CPU / Memory / Disk)</h4>
           <p>Per-host tables sorted by PCC showing the most traffic-correlated hosts. Each row includes observed values, PCC, forecasted values, and provisioning headroom. Column colors use the same threshold rules.</p>
+
+          <h4>Capacity Report</h4>
+          <p>A one-page executive summary of infrastructure capacity posture. Use the <strong>Print to PDF</strong> button to save or share the report — only the report content is printed, not the full page.</p>
 
           <h3>Analytics Tab — Statistical Metrics</h3>
 
@@ -937,7 +944,7 @@ export const TrafficAnalyzer = () => {
               </tr>
             </thead>
             <tbody>
-              <tr><td style={{ padding: 4 }}>Traffic</td><td style={{ padding: 4 }}><code>dt.host.cpu.system</code></td></tr>
+              <tr><td style={{ padding: 4 }}>Traffic</td><td style={{ padding: 4 }}><code>{trafficMetric}</code></td></tr>
               <tr><td style={{ padding: 4 }}>CPU</td><td style={{ padding: 4 }}><code>dt.host.cpu.usage</code></td></tr>
               <tr><td style={{ padding: 4 }}>Memory</td><td style={{ padding: 4 }}><code>dt.host.memory.usage</code></td></tr>
               <tr><td style={{ padding: 4 }}>Disk</td><td style={{ padding: 4 }}><code>dt.host.disk.free</code></td></tr>
@@ -962,6 +969,10 @@ export const TrafficAnalyzer = () => {
           <Flex flexDirection="column" gap={4}>
             <Strong>Top N (entities per table)</Strong>
             <NumberInput value={tempTopN} onChange={(val) => setTempTopN(val ?? DEFAULT_TOP_N)} min={1} max={10000} />
+          </Flex>
+          <Flex flexDirection="column" gap={4}>
+            <Strong>Traffic Metric</Strong>
+            <input value={tempTrafficMetric} onChange={(e) => setTempTrafficMetric(e.target.value)} placeholder={DEFAULT_TRAFFIC_METRIC} style={{ padding: "6px 12px", borderRadius: 6, border: "1px solid rgba(99,130,191,0.3)", background: "rgba(30,35,55,0.7)", color: "#d0d4e0", fontSize: 13 }} />
           </Flex>
         </Flex>
       </Modal>

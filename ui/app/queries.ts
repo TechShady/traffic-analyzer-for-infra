@@ -69,9 +69,9 @@ export function hostsForGroupQuery(groupNames: string[]): string {
  * Single metrics query that computes all observed stats + PCC for each resource.
  * This replaces the separate cpuStats/memoryStats/diskStats queries.
  */
-export function metricsQuery(hosts: string[], timeframeDays: number = 7): string {
+export function metricsQuery(hosts: string[], timeframeDays: number = 7, trafficMetric: string = "dt.host.cpu.system"): string {
   return `timeseries {
-Traffic = avg(dt.host.cpu.system),
+Traffic = avg(${trafficMetric}),
 Metric1 = avg(dt.host.cpu.usage),
 Metric2 = avg(dt.host.memory.usage),
 Metric3 = avg(dt.host.disk.free),${hostFilter(hosts)}
@@ -126,9 +126,9 @@ interval: 5m
 /**
  * CPU by host query with per-host PCC computation.
  */
-export function cpuByHostQuery(hosts: string[], topN: number, timeframeDays: number = 7): string {
+export function cpuByHostQuery(hosts: string[], topN: number, timeframeDays: number = 7, trafficMetric: string = "dt.host.cpu.system"): string {
   return `timeseries {
-  cpuUsage = avg(dt.host.cpu.usage), Traffic = avg(dt.host.cpu.system),${hostFilter(hosts)}, by:{dt.entity.host}
+  cpuUsage = avg(dt.host.cpu.usage), Traffic = avg(${trafficMetric}),${hostFilter(hosts)}, by:{dt.entity.host}
 },
 union: TRUE,
 from: -${timeframeDays}d,
@@ -153,9 +153,9 @@ interval: 5m
 /**
  * Memory by host query with per-host PCC computation.
  */
-export function memoryByHostQuery(hosts: string[], topN: number, timeframeDays: number = 7): string {
+export function memoryByHostQuery(hosts: string[], topN: number, timeframeDays: number = 7, trafficMetric: string = "dt.host.cpu.system"): string {
   return `timeseries {
-  memUsage = avg(dt.host.memory.usage), Traffic = avg(dt.host.cpu.system),${hostFilter(hosts)}, by:{dt.entity.host}
+  memUsage = avg(dt.host.memory.usage), Traffic = avg(${trafficMetric}),${hostFilter(hosts)}, by:{dt.entity.host}
 },
 union: TRUE,
 from: -${timeframeDays}d,
@@ -180,9 +180,9 @@ interval: 5m
 /**
  * Disk by host query with per-host PCC computation.
  */
-export function diskByHostQuery(hosts: string[], topN: number, timeframeDays: number = 7): string {
+export function diskByHostQuery(hosts: string[], topN: number, timeframeDays: number = 7, trafficMetric: string = "dt.host.cpu.system"): string {
   return `timeseries {
-  diskFree = avg(dt.host.disk.used.percent), Traffic = avg(dt.host.cpu.system),${hostFilter(hosts)}, by:{dt.entity.host}
+  diskFree = avg(dt.host.disk.used.percent), Traffic = avg(${trafficMetric}),${hostFilter(hosts)}, by:{dt.entity.host}
 },
 union: TRUE,
 from: -${timeframeDays}d,
@@ -331,9 +331,9 @@ export function forecastForHost(
  * Analytics query — returns raw timeseries arrays plus basic stats.
  * PCC, lag correlation, skewness, and CV are computed client-side.
  */
-export function analyticsQuery(hosts: string[], timeframeDays: number = 7): string {
+export function analyticsQuery(hosts: string[], timeframeDays: number = 7, trafficMetric: string = "dt.host.cpu.system"): string {
   return `timeseries {
-Traffic = avg(dt.host.cpu.system),
+Traffic = avg(${trafficMetric}),
 Metric1 = avg(dt.host.cpu.usage),
 Metric2 = avg(dt.host.memory.usage),
 Metric3 = avg(dt.host.disk.free),${hostFilter(hosts)}
